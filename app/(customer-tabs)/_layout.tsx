@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, User, Calendar, Users } from 'lucide-react-native';
+import { Home, Users, Calendar, User } from 'lucide-react-native';
 
 export default function CustomerTabLayout() {
   return (
