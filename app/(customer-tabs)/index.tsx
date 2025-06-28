@@ -1,15 +1,46 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Search, Bell, Star } from 'lucide-react-native';
+import { Search, Bell, Star, ChevronRight } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { mockServices, mockProfessionals, categories } from '@/data/mockData';
 
 export default function CustomerHome() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const featuredService = mockServices[0];
+  // Get top 6 services based on rating, price, and bookings
+  const topServices = mockServices
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 6);
+
+  // Get services by lowest price in selected category
+  const lowPriceServices = selectedCategory 
+    ? mockServices.filter(s => s.category === selectedCategory).sort((a, b) => a.price - b.price)
+    : mockServices.sort((a, b) => a.price - b.price);
+
+  // Get top 4 professionals
+  const topProfessionals = selectedCategory
+    ? mockProfessionals.filter(p => p.category === selectedCategory).slice(0, 4)
+    : mockProfessionals.slice(0, 4);
+
+  const renderServiceCard = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={styles.serviceSliderCard}
+      onPress={() => router.push('/service-detail')}
+    >
+      <Image source={{ uri: item.image }} style={styles.serviceSliderImage} />
+      <View style={styles.serviceSliderInfo}>
+        <Text style={styles.serviceSliderName} numberOfLines={2}>{item.name}</Text>
+        <Text style={styles.serviceSliderPrice}>R$ {item.price}</Text>
+        <View style={styles.serviceSliderRating}>
+          <Star size={12} color="#F59E0B" fill="#F59E0B" />
+          <Text style={styles.serviceSliderRatingText}>{item.rating}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -51,63 +82,76 @@ export default function CustomerHome() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Featured Service */}
+          {/* Top Services Slider */}
           <View style={styles.section}>
-            <TouchableOpacity
-              style={styles.featuredCard}
-              onPress={() => router.push('/service-detail')}
-            >
-              <Image
-                source={{ uri: featuredService.image }}
-                style={styles.featuredImage}
-              />
-              <View style={styles.featuredOverlay}>
-                <Text style={styles.featuredTitle}>{featuredService.name}</Text>
-                <Text style={styles.featuredPrice}>R$ {featuredService.price}</Text>
-                <View style={styles.featuredRating}>
-                  <Text style={styles.ratingText}>Avaliação: </Text>
-                  <Star size={16} color="#F59E0B" fill="#F59E0B" />
-                  <Text style={styles.ratingValue}>{featuredService.rating}</Text>
-                </View>
-                <TouchableOpacity style={styles.detailsButton}>
-                  <Text style={styles.detailsButtonText}>Ver detalhes</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.pagination}>
-                <View style={[styles.dot, styles.activeDot]} />
-                <View style={styles.dot} />
-                <View style={styles.dot} />
-                <View style={styles.dot} />
-              </View>
-            </TouchableOpacity>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Principais Serviços</Text>
+              <Text style={styles.sectionSubtitle}>Melhor avaliação • Melhor preço • Mais contratações</Text>
+            </View>
+            <FlatList
+              data={topServices}
+              renderItem={renderServiceCard}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.sliderContainer}
+            />
           </View>
 
           {/* Categories */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Categorias</Text>
-            <View style={styles.categoriesGrid}>
-              {categories.map((category) => (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.categoriesContainer}>
                 <TouchableOpacity
-                  key={category.id}
-                  style={styles.categoryCard}
+                  style={[
+                    styles.categoryCard,
+                    !selectedCategory && styles.categoryCardActive
+                  ]}
+                  onPress={() => setSelectedCategory(null)}
                 >
-                  <Text style={styles.categoryIcon}>{category.icon}</Text>
-                  <Text style={styles.categoryName}>{category.name}</Text>
+                  <Text style={styles.categoryIcon}>🏠</Text>
+                  <Text style={[
+                    styles.categoryName,
+                    !selectedCategory && styles.categoryNameActive
+                  ]}>Todos</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+                {categories.map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={[
+                      styles.categoryCard,
+                      selectedCategory === category.name && styles.categoryCardActive
+                    ]}
+                    onPress={() => setSelectedCategory(category.name)}
+                  >
+                    <Text style={styles.categoryIcon}>{category.icon}</Text>
+                    <Text style={[
+                      styles.categoryName,
+                      selectedCategory === category.name && styles.categoryNameActive
+                    ]}>{category.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
           </View>
 
           {/* Best Professionals */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Melhores profissionais</Text>
-              <TouchableOpacity onPress={() => router.push('/professionals')}>
+              <Text style={styles.sectionTitle}>
+                {selectedCategory ? `Melhores ${selectedCategory}s` : 'Melhores Profissionais'}
+              </Text>
+              <TouchableOpacity 
+                style={styles.seeMoreButton}
+                onPress={() => router.push('/professionals')}
+              >
                 <Text style={styles.seeMore}>Ver mais</Text>
+                <ChevronRight size={16} color="#10B981" />
               </TouchableOpacity>
             </View>
             
-            {mockProfessionals.slice(0, 3).map((professional) => (
+            {topProfessionals.map((professional) => (
               <TouchableOpacity
                 key={professional.id}
                 style={styles.professionalCard}
@@ -126,9 +170,37 @@ export default function CustomerHome() {
                     </Text>
                   </View>
                   <Text style={styles.professionalCategory}>{professional.category}</Text>
+                  <Text style={styles.professionalAddress}>{professional.address}</Text>
+                </View>
+                <View style={styles.professionalBadge}>
+                  <Text style={styles.professionalBadgeText}>Verificado</Text>
                 </View>
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Low Price Services Slider */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {selectedCategory ? `${selectedCategory} - Menor Preço` : 'Serviços - Menor Preço'}
+              </Text>
+              <TouchableOpacity 
+                style={styles.seeMoreButton}
+                onPress={() => router.push('/professionals')}
+              >
+                <Text style={styles.seeMore}>Ver mais</Text>
+                <ChevronRight size={16} color="#10B981" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={lowPriceServices.slice(0, 6)}
+              renderItem={renderServiceCard}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.sliderContainer}
+            />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -197,111 +269,98 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   section: {
-    paddingHorizontal: 24,
     marginBottom: 32,
   },
-  featuredCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginTop: -16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  featuredImage: {
-    width: '100%',
-    height: 200,
-  },
-  featuredOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 16,
-  },
-  featuredTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  featuredPrice: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  featuredRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  ratingText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#FFFFFF',
-  },
-  ratingValue: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-    marginLeft: 4,
-  },
-  detailsButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-  },
-  detailsButtonText: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
-  pagination: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  activeDot: {
-    backgroundColor: '#10B981',
+  sectionHeader: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
     color: '#111827',
-    marginBottom: 16,
+    marginBottom: 4,
   },
-  sectionHeader: {
+  sectionSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  seeMoreButton: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    gap: 4,
   },
   seeMore: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#10B981',
   },
-  categoriesGrid: {
+  sliderContainer: {
+    paddingLeft: 24,
+    paddingRight: 8,
+  },
+  serviceSliderCard: {
+    width: 160,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    overflow: 'hidden',
+  },
+  serviceSliderImage: {
+    width: '100%',
+    height: 100,
+  },
+  serviceSliderInfo: {
+    padding: 12,
+  },
+  serviceSliderName: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 6,
+    height: 36,
+  },
+  serviceSliderPrice: {
+    fontSize: 16,
+    fontFamily: 'Inter-Bold',
+    color: '#10B981',
+    marginBottom: 4,
+  },
+  serviceSliderRating: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    alignItems: 'center',
+    gap: 4,
+  },
+  serviceSliderRatingText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  categoriesContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    gap: 16,
   },
   categoryCard: {
     alignItems: 'center',
     padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    minWidth: 80,
+  },
+  categoryCardActive: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#10B981',
   },
   categoryIcon: {
     fontSize: 32,
@@ -310,7 +369,12 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
-    color: '#111827',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  categoryNameActive: {
+    color: '#10B981',
+    fontFamily: 'Inter-SemiBold',
   },
   professionalCard: {
     flexDirection: 'row',
@@ -319,6 +383,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    marginHorizontal: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -355,7 +420,26 @@ const styles = StyleSheet.create({
   },
   professionalCategory: {
     fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#10B981',
+    marginBottom: 2,
+  },
+  professionalAddress: {
+    fontSize: 12,
     fontFamily: 'Inter-Regular',
+    color: '#9CA3AF',
+  },
+  professionalBadge: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  professionalBadgeText: {
+    fontSize: 10,
+    fontFamily: 'Inter-SemiBold',
     color: '#10B981',
   },
 });
