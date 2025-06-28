@@ -51,11 +51,11 @@ export default function CustomerTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="chat"
+        name="profile"
         options={{
-          title: 'Mensagens',
+          title: 'Perfil',
           tabBarIcon: ({ size, color }) => (
-            <MessageCircle size={size} color={color} />
+            <User size={size} color={color} />
           ),
         }}
       />
