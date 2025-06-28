@@ -18,7 +18,7 @@ export default function Index() {
   }
 
   if (user.type === 'customer') {
-    return <Redirect href="/(customer-tabs)" />;
+    return <Redirect href="/home" />;
   }
 
   return <Redirect href="/(provider-tabs)" />;

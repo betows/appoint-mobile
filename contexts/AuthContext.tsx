@@ -35,81 +35,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 500);
   }, []);
 
+  const API_BASE_URL = 'http://localhost:5000/api/v1';
+
   const login = async (email: string, password: string, userType: UserType) => {
     setIsLoading(true);
-    
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Check for specific test credentials
-      if (email === 'provider@example.com' && password === 'provider') {
-        const mockUser: User = {
-          id: 'provider-1',
-          name: 'Encanadores Rápidos',
-          email,
-          type: 'provider',
-          avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-          phone: '+55 (11) 99999-9999',
-          rating: 4.8,
-          services: ['Encanamento', 'Reparo Hidráulico'],
-          categories: ['Encanador'],
-        };
-        
-        setUser(mockUser);
-        setIsLoading(false);
-        return;
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, type: userType }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
       }
-      
-      if (email === 'customer@example.com' && password === 'customer') {
-        const mockUser: User = {
-          id: 'customer-1',
-          name: 'João Silva',
-          email,
-          type: 'customer',
-          avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-          phone: '+55 (11) 88888-8888',
-        };
-        
-        setUser(mockUser);
-        setIsLoading(false);
-        return;
-      }
-      
-      // For any other credentials, simulate a failed login
-      setIsLoading(false);
-      throw new Error('Invalid credentials');
-      
+
+      const user: User = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        type: data.user.type,
+        avatar: data.user.avatar,
+        phone: data.user.phone,
+        rating: data.user.rating,
+        services: data.user.services,
+        categories: data.user.categories,
+        token: data.token, // Store the token
+      };
+
+      setUser(user);
+      // In a real app, you'd store the token (e.g., AsyncStorage)
     } catch (error) {
-      setIsLoading(false);
+      console.error('Login error:', error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const register = async (name: string, email: string, password: string, userType: UserType) => {
     setIsLoading(true);
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        name,
-        email,
-        type: userType,
-        avatar: `https://images.pexels.com/photos/${userType === 'customer' ? '220453' : '2379004'}/pexels-photo-${userType === 'customer' ? '220453' : '2379004'}.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2`,
-        phone: '+55 (11) 99999-9999',
-        rating: userType === 'provider' ? 0 : undefined,
-        services: userType === 'provider' ? [] : undefined,
-        categories: userType === 'provider' ? [] : undefined,
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password, type: userType }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      const user: User = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        type: data.user.type,
+        avatar: data.user.avatar,
+        phone: data.user.phone,
+        rating: data.user.rating,
+        services: data.user.services,
+        categories: data.user.categories,
       };
-      
-      setUser(mockUser);
-      setIsLoading(false);
+
+      setUser(user);
+      // In a real app, you'd store the token (e.g., AsyncStorage)
     } catch (error) {
-      setIsLoading(false);
+      console.error('Registration error:', error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

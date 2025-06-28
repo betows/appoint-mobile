@@ -1,361 +1,241 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Star, Clock, MessageCircle } from 'lucide-react-native';
-import { router } from 'expo-router';
-import { mockProfessionals, mockServices } from '@/data/mockData';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, useRouter, Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+const API_BASE_URL = 'http://localhost:5000/api/v1';
+
+interface Provider {
+  id: string;
+  legalName: string;
+  email: string;
+  phone: string;
+  avatar?: string;
+  rating: number;
+  services: Service[];
+  address: {
+    street: string;
+    number: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  };
+}
+
+interface Service {
+  id: string;
+  title: string;
+  averageTime: string;
+  price: number;
+  image?: string;
+}
 
 export default function ProfessionalDetail() {
-  const [activeTab, setActiveTab] = useState('Serviços');
-  
-  const professional = mockProfessionals[0];
-  const professionalServices = mockServices.filter(service => service.providerId === professional.id);
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
+  const [provider, setProvider] = useState<Provider | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      fetchProviderDetails(id as string);
+    }
+  }, [id]);
+
+  const fetchProviderDetails = async (providerId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/marketplace/providers/${providerId}`);
+      const data = await response.json();
+      setProvider(data);
+    } catch (error) {
+      console.error("Error fetching provider details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
+  }
+
+  if (!provider) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Provider not found.</Text>
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header with background image */}
-        <View style={styles.headerContainer}>
-          <Image
-            source={{ uri: professional.backgroundImage }}
-            style={styles.backgroundImage}
-          />
-          <View style={styles.headerOverlay}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <ArrowLeft size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
 
-        {/* Professional Info */}
-        <View style={styles.profileSection}>
-          <View style={styles.profileHeader}>
-            <Image
-              source={{ uri: professional.avatar }}
-              style={styles.avatar}
-            />
-            <TouchableOpacity style={styles.chatButton}>
-              <MessageCircle size={20} color="#FFFFFF" />
-              <Text style={styles.chatButtonText}>Conversar</Text>
-            </TouchableOpacity>
-          </View>
+      <View style={styles.profileHeader}>
+        <Image source={{ uri: provider.avatar || 'https://via.placeholder.com/150' }} style={styles.avatar} />
+        <Text style={styles.providerName}>{provider.legalName}</Text>
+        <Text style={styles.providerRating}>Avaliação: {provider.rating} ⭐</Text>
+      </View>
 
-          <Text style={styles.professionalName}>{professional.name}</Text>
-          <View style={styles.ratingContainer}>
-            <Star size={16} color="#F59E0B" fill="#F59E0B" />
-            <Text style={styles.ratingText}>{professional.rating}</Text>
-          </View>
-          <Text style={styles.description}>{professional.description}</Text>
-          <Text style={styles.address}>Endereço: {professional.address}</Text>
-        </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Contato</Text>
+        <Text style={styles.detailText}>Email: {provider.email}</Text>
+        <Text style={styles.detailText}>Telefone: {provider.phone}</Text>
+      </View>
 
-        {/* Tabs */}
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              activeTab === 'Serviços' && styles.activeTab,
-            ]}
-            onPress={() => setActiveTab('Serviços')}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'Serviços' && styles.activeTabText,
-              ]}
-            >
-              Serviços
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              activeTab === 'Avaliações' && styles.activeTab,
-            ]}
-            onPress={() => setActiveTab('Avaliações')}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'Avaliações' && styles.activeTabText,
-              ]}
-            >
-              Avaliações
-            </Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Endereço</Text>
+        <Text style={styles.detailText}>Rua: {provider.address.street}, {provider.address.number}</Text>
+        <Text style={styles.detailText}>Bairro: {provider.address.neighborhood}</Text>
+        <Text style={styles.detailText}>Cidade: {provider.address.city} - {provider.address.state}</Text>
+        <Text style={styles.detailText}>CEP: {provider.address.zipCode}</Text>
+      </View>
 
-        {/* Services */}
-        {activeTab === 'Serviços' && (
-          <View style={styles.servicesSection}>
-            <Text style={styles.sectionTitle}>Serviços oferecidos</Text>
-            {professionalServices.map((service) => (
-              <TouchableOpacity
-                key={service.id}
-                style={styles.serviceCard}
-                onPress={() => router.push('/service-detail')}
-              >
-                <Image
-                  source={{ uri: service.image }}
-                  style={styles.serviceImage}
-                />
-                <View style={styles.serviceInfo}>
-                  <Text style={styles.serviceName}>{service.name}</Text>
-                  <Text style={styles.servicePrice}>R$ {service.price}</Text>
-                  <View style={styles.serviceDuration}>
-                    <Clock size={14} color="#6B7280" />
-                    <Text style={styles.durationText}>{service.duration}</Text>
-                  </View>
-                  <Text style={styles.serviceCategory}>{service.category}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* Reviews */}
-        {activeTab === 'Avaliações' && (
-          <View style={styles.reviewsSection}>
-            <Text style={styles.sectionTitle}>Avaliações</Text>
-            <View style={styles.reviewCard}>
-              <View style={styles.reviewHeader}>
-                <Image
-                  source={{ uri: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=50&h=50&dpr=2' }}
-                  style={styles.reviewAvatar}
-                />
-                <View style={styles.reviewInfo}>
-                  <Text style={styles.reviewerName}>João Silva</Text>
-                  <View style={styles.reviewRating}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} size={12} color="#F59E0B" fill="#F59E0B" />
-                    ))}
-                  </View>
-                </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Serviços Oferecidos</Text>
+        {provider.services.length > 0 ? (
+          provider.services.map((service) => (
+            <Link href={`/service-detail?id=${service.id}`} key={service.id} style={styles.serviceCard}>
+              <Image source={{ uri: service.image || 'https://via.placeholder.com/100' }} style={styles.serviceImage} />
+              <View style={styles.serviceInfo}>
+                <Text style={styles.serviceTitle}>{service.title}</Text>
+                <Text style={styles.serviceDetail}>Tempo: {service.averageTime}</Text>
+                <Text style={styles.serviceDetail}>Preço: R${service.price}</Text>
               </View>
-              <Text style={styles.reviewText}>
-                Excelente profissional! Muito pontual e eficiente. Recomendo!
-              </Text>
-            </View>
-          </View>
+            </Link>
+          ))
+        ) : (
+          <Text style={styles.noServicesText}>Nenhum serviço cadastrado.</Text>
         )}
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F3F4F6',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
   },
-  headerContainer: {
-    height: 200,
-    position: 'relative',
-  },
-  backgroundImage: {
-    width: '100%',
-    height: '100%',
-  },
-  headerOverlay: {
+  header: {
+    backgroundColor: '#10B981',
+    paddingTop: 40,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    paddingTop: 16,
-    paddingHorizontal: 24,
+    zIndex: 20,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileSection: {
-    padding: 24,
+    padding: 8,
   },
   profileHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    padding: 20,
     alignItems: 'center',
-    marginBottom: 16,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginTop: 60, // To account for the absolute header
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
-    marginTop: -40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#10B981',
   },
-  chatButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#10B981',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
-  },
-  chatButtonText: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
-  professionalName: {
+  providerName: {
     fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    marginBottom: 8,
+    fontWeight: 'bold',
+    color: '#1F2937',
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 4,
+  providerRating: {
+    fontSize: 18,
+    color: '#4B5563',
+    marginTop: 5,
   },
-  ratingText: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-  },
-  description: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  address: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    paddingHorizontal: 24,
-  },
-  tab: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#10B981',
-  },
-  tabText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  activeTabText: {
-    color: '#10B981',
-  },
-  servicesSection: {
-    padding: 24,
+  section: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
-    color: '#111827',
-    marginBottom: 16,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 10,
+  },
+  detailText: {
+    fontSize: 16,
+    color: '#374151',
+    marginBottom: 5,
   },
   serviceCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    shadowRadius: 2,
+    elevation: 1,
   },
   serviceImage: {
     width: 60,
     height: 60,
-    borderRadius: 8,
-    marginRight: 16,
+    borderRadius: 5,
+    marginRight: 10,
+    resizeMode: 'cover',
   },
   serviceInfo: {
     flex: 1,
   },
-  serviceName: {
+  serviceTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 4,
+    fontWeight: 'bold',
+    color: '#1F2937',
   },
-  servicePrice: {
+  serviceDetail: {
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#10B981',
-    marginBottom: 4,
+    color: '#4B5563',
   },
-  serviceDuration: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-    gap: 4,
-  },
-  durationText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
+  noServicesText: {
+    fontSize: 16,
     color: '#6B7280',
-  },
-  serviceCategory: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#10B981',
-  },
-  reviewsSection: {
-    padding: 24,
-  },
-  reviewCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  reviewAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  reviewInfo: {
-    flex: 1,
-  },
-  reviewerName: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  reviewRating: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  reviewText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    lineHeight: 20,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 10,
   },
 });
