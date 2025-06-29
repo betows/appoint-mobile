@@ -1,15 +1,101 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CreditCard as Edit, Star, MapPin, Phone, Mail, Settings, LogOut } from 'lucide-react-native';
+import { 
+  Edit, Star, MapPin, Phone, Mail, Settings, LogOut, 
+  Bell, Shield, HelpCircle, CreditCard, Users, 
+  ChevronRight, Moon, Globe
+} from 'lucide-react-native';
 import { router } from 'expo-router';
 import { mockUsers } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ProviderProfile() {
+  const { logout } = useAuth();
   const provider = mockUsers.find(user => user.type === 'provider');
 
   const handleLogout = () => {
-    router.replace('/auth');
+    Alert.alert(
+      'Sair da Conta',
+      'Tem certeza que deseja sair da sua conta?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sair',
+          style: 'destructive',
+          onPress: () => {
+            logout();
+            router.replace('/auth');
+          }
+        }
+      ]
+    );
   };
+
+  const handleEditProfile = () => {
+    router.push('/edit-profile');
+  };
+
+  const settingsOptions = [
+    {
+      id: 'edit-profile',
+      title: 'Editar Perfil',
+      subtitle: 'Alterar informações pessoais',
+      icon: Edit,
+      onPress: handleEditProfile,
+    },
+    {
+      id: 'notifications',
+      title: 'Notificações',
+      subtitle: 'Configurar alertas e avisos',
+      icon: Bell,
+      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+    },
+    {
+      id: 'privacy',
+      title: 'Privacidade e Segurança',
+      subtitle: 'Controlar dados e segurança',
+      icon: Shield,
+      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+    },
+    {
+      id: 'payments',
+      title: 'Pagamentos',
+      subtitle: 'Métodos de pagamento e histórico',
+      icon: CreditCard,
+      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+    },
+    {
+      id: 'customers',
+      title: 'Gerenciar Clientes',
+      subtitle: 'Histórico e avaliações',
+      icon: Users,
+      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+    },
+  ];
+
+  const supportOptions = [
+    {
+      id: 'help',
+      title: 'Central de Ajuda',
+      subtitle: 'FAQ e suporte',
+      icon: HelpCircle,
+      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+    },
+    {
+      id: 'language',
+      title: 'Idioma',
+      subtitle: 'Português (Brasil)',
+      icon: Globe,
+      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+    },
+    {
+      id: 'theme',
+      title: 'Tema',
+      subtitle: 'Claro',
+      icon: Moon,
+      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -21,7 +107,10 @@ export default function ProviderProfile() {
               source={{ uri: provider?.avatar }}
               style={styles.avatar}
             />
-            <TouchableOpacity style={styles.editAvatarButton}>
+            <TouchableOpacity 
+              style={styles.editAvatarButton}
+              onPress={handleEditProfile}
+            >
               <Edit size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
@@ -31,6 +120,14 @@ export default function ProviderProfile() {
             <Star size={16} color="#F59E0B" fill="#F59E0B" />
             <Text style={styles.ratingText}>{provider?.rating} • Prestador verificado</Text>
           </View>
+          
+          <TouchableOpacity 
+            style={styles.editProfileButton}
+            onPress={handleEditProfile}
+          >
+            <Edit size={16} color="#10B981" />
+            <Text style={styles.editProfileButtonText}>Editar Perfil</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Contact Info */}
@@ -91,21 +188,66 @@ export default function ProviderProfile() {
           <Text style={styles.sectionTitle}>Configurações</Text>
           
           <View style={styles.settingsContainer}>
-            <TouchableOpacity style={styles.settingItem}>
-              <Settings size={20} color="#6B7280" />
-              <Text style={styles.settingText}>Configurações da Conta</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.settingItem}>
-              <Edit size={20} color="#6B7280" />
-              <Text style={styles.settingText}>Editar Perfil</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
-              <LogOut size={20} color="#EF4444" />
-              <Text style={[styles.settingText, styles.logoutText]}>Sair da Conta</Text>
-            </TouchableOpacity>
+            {settingsOptions.map((option) => {
+              const IconComponent = option.icon;
+              return (
+                <TouchableOpacity 
+                  key={option.id}
+                  style={styles.settingItem}
+                  onPress={option.onPress}
+                >
+                  <View style={styles.settingIcon}>
+                    <IconComponent size={20} color="#6B7280" />
+                  </View>
+                  <View style={styles.settingContent}>
+                    <Text style={styles.settingTitle}>{option.title}</Text>
+                    <Text style={styles.settingSubtitle}>{option.subtitle}</Text>
+                  </View>
+                  <ChevronRight size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              );
+            })}
           </View>
+        </View>
+
+        {/* Support */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Suporte</Text>
+          
+          <View style={styles.settingsContainer}>
+            {supportOptions.map((option) => {
+              const IconComponent = option.icon;
+              return (
+                <TouchableOpacity 
+                  key={option.id}
+                  style={styles.settingItem}
+                  onPress={option.onPress}
+                >
+                  <View style={styles.settingIcon}>
+                    <IconComponent size={20} color="#6B7280" />
+                  </View>
+                  <View style={styles.settingContent}>
+                    <Text style={styles.settingTitle}>{option.title}</Text>
+                    <Text style={styles.settingSubtitle}>{option.subtitle}</Text>
+                  </View>
+                  <ChevronRight size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Logout */}
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <LogOut size={20} color="#EF4444" />
+            <Text style={styles.logoutText}>Sair da Conta</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* App Version */}
+        <View style={styles.versionContainer}>
+          <Text style={styles.versionText}>Appoint v1.0.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -154,11 +296,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    marginBottom: 16,
   },
   ratingText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#6B7280',
+  },
+  editProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#10B981',
+    gap: 6,
+  },
+  editProfileButtonText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#10B981',
   },
   section: {
     paddingHorizontal: 24,
@@ -243,16 +402,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  settingText: {
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  settingContent: {
+    flex: 1,
+  },
+  settingTitle: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Inter-SemiBold',
     color: '#111827',
+    marginBottom: 2,
+  },
+  settingSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    gap: 8,
   },
   logoutText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
     color: '#EF4444',
+  },
+  versionContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  versionText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#9CA3AF',
   },
 });

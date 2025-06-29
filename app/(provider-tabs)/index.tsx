@@ -1,167 +1,60 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bell, CircleCheck as CheckCircle, X, MessageCircle } from 'lucide-react-native';
+import { Bell, TrendingUp, TrendingDown, DollarSign, Star, Users, Calendar, MessageCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { mockUsers, mockAppointments, mockProviderChats } from '@/data/mockData';
 
 export default function ProviderDashboard() {
   const [activeTab, setActiveTab] = useState('Dashboard');
-  const [appointments, setAppointments] = useState(mockAppointments);
-  
   const provider = mockUsers.find(user => user.type === 'provider');
-  const pendingAppointments = appointments.filter(apt => apt.status === 'pending');
-  const confirmedAppointments = appointments.filter(apt => apt.status === 'confirmed');
-
-  const handleConfirmAppointment = (appointmentId: string) => {
-    Alert.alert(
-      'Confirmar Agendamento',
-      'Deseja confirmar este agendamento?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          onPress: () => {
-            setAppointments(prev =>
-              prev.map(apt =>
-                apt.id === appointmentId
-                  ? { ...apt, status: 'confirmed' as const }
-                  : apt
-              )
-            );
-            Alert.alert('Sucesso', 'Agendamento confirmado!');
-          }
-        }
-      ]
-    );
+  
+  // Dados simulados para dashboard
+  const dashboardData = {
+    monthlyRevenue: 3240,
+    revenueGrowth: 12.5,
+    totalBookings: 24,
+    bookingsGrowth: 8.3,
+    averageRating: 4.8,
+    ratingGrowth: 2.1,
+    completionRate: 96,
+    completionGrowth: -1.2,
+    pendingAppointments: mockAppointments.filter(apt => apt.status === 'pending').length,
+    confirmedAppointments: mockAppointments.filter(apt => apt.status === 'confirmed').length,
+    completedAppointments: mockAppointments.filter(apt => apt.status === 'completed').length,
+    cancelledAppointments: mockAppointments.filter(apt => apt.status === 'cancelled').length,
   };
 
-  const handleCancelAppointment = (appointmentId: string) => {
-    Alert.alert(
-      'Cancelar Agendamento',
-      'Deseja cancelar este agendamento?',
-      [
-        { text: 'Não', style: 'cancel' },
-        {
-          text: 'Sim',
-          style: 'destructive',
-          onPress: () => {
-            setAppointments(prev =>
-              prev.map(apt =>
-                apt.id === appointmentId
-                  ? { ...apt, status: 'cancelled' as const }
-                  : apt
-              )
-            );
-            Alert.alert('Agendamento Cancelado', 'O agendamento foi cancelado.');
-          }
-        }
-      ]
-    );
-  };
+  const recentActivity = [
+    { id: '1', type: 'booking', message: 'Novo agendamento de João Silva', time: '2h atrás', icon: Calendar },
+    { id: '2', type: 'review', message: 'Nova avaliação 5 estrelas', time: '4h atrás', icon: Star },
+    { id: '3', type: 'message', message: 'Nova mensagem de Maria Santos', time: '6h atrás', icon: MessageCircle },
+    { id: '4', type: 'payment', message: 'Pagamento de R$ 150 recebido', time: '1d atrás', icon: DollarSign },
+  ];
 
-  const handleChatPress = (chatId: string) => {
-    router.push({
-      pathname: '/chat-detail',
-      params: { chatId }
-    });
-  };
-
-  const renderDashboard = () => (
-    <ScrollView 
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
-    >
-      {/* Pending Appointments */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Agendamentos Pendentes</Text>
-          <TouchableOpacity onPress={() => router.push('/(provider-tabs)/calendar')}>
-            <Text style={styles.calendarLink}>Ver calendário</Text>
-          </TouchableOpacity>
-        </View>
-
-        {pendingAppointments.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>Nenhum agendamento pendente</Text>
+  const renderStatCard = (title: string, value: string | number, growth: number, icon: any, color: string) => {
+    const IconComponent = icon;
+    const isPositive = growth > 0;
+    
+    return (
+      <View style={styles.statCard}>
+        <View style={styles.statHeader}>
+          <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
+            <IconComponent size={20} color={color} />
           </View>
-        ) : (
-          pendingAppointments.map((appointment) => (
-            <View key={appointment.id} style={styles.appointmentCard}>
-              <View style={styles.appointmentIndicator} />
-              <View style={styles.appointmentContent}>
-                <Text style={styles.appointmentService}>{appointment.service}</Text>
-                <Text style={styles.appointmentClient}>Cliente: {appointment.client}</Text>
-                <Text style={styles.appointmentDateTime}>
-                  Data: {appointment.date}, {appointment.time}
-                </Text>
-                <View style={styles.appointmentActions}>
-                  <TouchableOpacity 
-                    style={styles.confirmButton}
-                    onPress={() => handleConfirmAppointment(appointment.id)}
-                  >
-                    <CheckCircle size={16} color="#FFFFFF" />
-                    <Text style={styles.confirmButtonText}>Confirmar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.cancelButton}
-                    onPress={() => handleCancelAppointment(appointment.id)}
-                  >
-                    <X size={16} color="#FFFFFF" />
-                    <Text style={styles.cancelButtonText}>Cancelar</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          ))
-        )}
-      </View>
-
-      {/* Confirmed Appointments */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Agendamentos Confirmados</Text>
-        
-        {confirmedAppointments.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>Nenhum agendamento confirmado</Text>
-          </View>
-        ) : (
-          confirmedAppointments.map((appointment) => (
-            <View key={appointment.id} style={styles.appointmentCard}>
-              <View style={[styles.appointmentIndicator, styles.confirmedIndicator]} />
-              <View style={styles.appointmentContent}>
-                <Text style={styles.appointmentService}>{appointment.service}</Text>
-                <Text style={styles.appointmentClient}>Cliente: {appointment.client}</Text>
-                <Text style={styles.appointmentDateTime}>
-                  Data: {appointment.date}, {appointment.time}
-                </Text>
-              </View>
-            </View>
-          ))
-        )}
-      </View>
-
-      {/* Quick Stats */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Estatísticas Rápidas</Text>
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{pendingAppointments.length}</Text>
-            <Text style={styles.statLabel}>Pendentes</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{confirmedAppointments.length}</Text>
-            <Text style={styles.statLabel}>Confirmados</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>4.8</Text>
-            <Text style={styles.statLabel}>Avaliação</Text>
+          <View style={[styles.growthBadge, isPositive ? styles.positiveGrowth : styles.negativeGrowth]}>
+            {isPositive ? <TrendingUp size={12} color="#10B981" /> : <TrendingDown size={12} color="#EF4444" />}
+            <Text style={[styles.growthText, isPositive ? styles.positiveGrowthText : styles.negativeGrowthText]}>
+              {Math.abs(growth)}%
+            </Text>
           </View>
         </View>
+        <Text style={styles.statValue}>{value}</Text>
+        <Text style={styles.statTitle}>{title}</Text>
       </View>
-    </ScrollView>
-  );
+    );
+  };
 
   const renderConversas = () => (
     <ScrollView 
@@ -173,6 +66,7 @@ export default function ProviderDashboard() {
         
         {mockProviderChats.length === 0 ? (
           <View style={styles.emptyState}>
+            <MessageCircle size={48} color="#D1D5DB" />
             <Text style={styles.emptyText}>Nenhuma conversa ativa</Text>
             <Text style={styles.emptySubtext}>
               Suas conversas com clientes aparecerão aqui
@@ -183,7 +77,10 @@ export default function ProviderDashboard() {
             <TouchableOpacity
               key={chat.id}
               style={styles.chatCard}
-              onPress={() => handleChatPress(chat.id)}
+              onPress={() => router.push({
+                pathname: '/chat-detail',
+                params: { chatId: chat.id }
+              })}
             >
               <View style={styles.chatAvatar}>
                 <Image
@@ -252,12 +149,6 @@ export default function ProviderDashboard() {
                   <Text style={styles.serviceName}>{provider?.name}</Text>
                   <Text style={styles.email}>{provider?.email}</Text>
                 </View>
-                <TouchableOpacity 
-                  style={styles.editButton}
-                  onPress={() => router.push('/edit-profile')}
-                >
-                  <Text style={styles.editButtonText}>Editar</Text>
-                </TouchableOpacity>
               </View>
               <TouchableOpacity style={styles.notificationButton}>
                 <Bell size={24} color="#FFFFFF" />
@@ -304,7 +195,128 @@ export default function ProviderDashboard() {
       </View>
 
       <SafeAreaView edges={['bottom']} style={styles.contentContainer}>
-        {activeTab === 'Dashboard' ? renderDashboard() : renderConversas()}
+        {activeTab === 'Dashboard' ? (
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {/* Stats Grid */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Visão Geral</Text>
+              <View style={styles.statsGrid}>
+                {renderStatCard(
+                  'Receita Mensal',
+                  `R$ ${dashboardData.monthlyRevenue}`,
+                  dashboardData.revenueGrowth,
+                  DollarSign,
+                  '#10B981'
+                )}
+                {renderStatCard(
+                  'Agendamentos',
+                  dashboardData.totalBookings,
+                  dashboardData.bookingsGrowth,
+                  Calendar,
+                  '#3B82F6'
+                )}
+                {renderStatCard(
+                  'Avaliação Média',
+                  dashboardData.averageRating,
+                  dashboardData.ratingGrowth,
+                  Star,
+                  '#F59E0B'
+                )}
+                {renderStatCard(
+                  'Taxa de Conclusão',
+                  `${dashboardData.completionRate}%`,
+                  dashboardData.completionGrowth,
+                  Users,
+                  '#8B5CF6'
+                )}
+              </View>
+            </View>
+
+            {/* Quick Actions */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Ações Rápidas</Text>
+              <View style={styles.quickActions}>
+                <TouchableOpacity 
+                  style={styles.quickActionCard}
+                  onPress={() => router.push('/(provider-tabs)/appointments')}
+                >
+                  <Calendar size={24} color="#10B981" />
+                  <Text style={styles.quickActionText}>Ver Agendamentos</Text>
+                  <Text style={styles.quickActionSubtext}>{dashboardData.pendingAppointments} pendentes</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.quickActionCard}
+                  onPress={() => setActiveTab('Conversas')}
+                >
+                  <MessageCircle size={24} color="#3B82F6" />
+                  <Text style={styles.quickActionText}>Conversas</Text>
+                  <Text style={styles.quickActionSubtext}>{mockProviderChats.length} ativas</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.quickActionCard}
+                  onPress={() => router.push('/(provider-tabs)/services')}
+                >
+                  <Wrench size={24} color="#F59E0B" />
+                  <Text style={styles.quickActionText}>Meus Serviços</Text>
+                  <Text style={styles.quickActionSubtext}>Gerenciar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Status dos Agendamentos */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Status dos Agendamentos</Text>
+              <View style={styles.appointmentStats}>
+                <View style={styles.appointmentStatItem}>
+                  <View style={[styles.appointmentStatDot, { backgroundColor: '#F59E0B' }]} />
+                  <Text style={styles.appointmentStatLabel}>Pendentes</Text>
+                  <Text style={styles.appointmentStatValue}>{dashboardData.pendingAppointments}</Text>
+                </View>
+                <View style={styles.appointmentStatItem}>
+                  <View style={[styles.appointmentStatDot, { backgroundColor: '#10B981' }]} />
+                  <Text style={styles.appointmentStatLabel}>Confirmados</Text>
+                  <Text style={styles.appointmentStatValue}>{dashboardData.confirmedAppointments}</Text>
+                </View>
+                <View style={styles.appointmentStatItem}>
+                  <View style={[styles.appointmentStatDot, { backgroundColor: '#059669' }]} />
+                  <Text style={styles.appointmentStatLabel}>Concluídos</Text>
+                  <Text style={styles.appointmentStatValue}>{dashboardData.completedAppointments}</Text>
+                </View>
+                <View style={styles.appointmentStatItem}>
+                  <View style={[styles.appointmentStatDot, { backgroundColor: '#EF4444' }]} />
+                  <Text style={styles.appointmentStatLabel}>Cancelados</Text>
+                  <Text style={styles.appointmentStatValue}>{dashboardData.cancelledAppointments}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Atividade Recente */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Atividade Recente</Text>
+              {recentActivity.map((activity) => {
+                const IconComponent = activity.icon;
+                return (
+                  <View key={activity.id} style={styles.activityItem}>
+                    <View style={styles.activityIcon}>
+                      <IconComponent size={16} color="#6B7280" />
+                    </View>
+                    <View style={styles.activityContent}>
+                      <Text style={styles.activityMessage}>{activity.message}</Text>
+                      <Text style={styles.activityTime}>{activity.time}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
+        ) : (
+          renderConversas()
+        )}
       </SafeAreaView>
     </View>
   );
@@ -354,19 +366,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: 'rgba(255, 255, 255, 0.8)',
   },
-  editButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  editButtonText: {
-    fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
   notificationButton: {
     padding: 4,
     marginLeft: 12,
@@ -406,21 +405,166 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 20,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
   sectionTitle: {
     fontSize: 18,
     fontFamily: 'Inter-Bold',
     color: '#111827',
+    marginBottom: 16,
   },
-  calendarLink: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  growthBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 12,
+    gap: 2,
+  },
+  positiveGrowth: {
+    backgroundColor: '#F0FDF4',
+  },
+  negativeGrowth: {
+    backgroundColor: '#FEF2F2',
+  },
+  growthText: {
+    fontSize: 10,
+    fontFamily: 'Inter-SemiBold',
+  },
+  positiveGrowthText: {
     color: '#10B981',
+  },
+  negativeGrowthText: {
+    color: '#EF4444',
+  },
+  statValue: {
+    fontSize: 24,
+    fontFamily: 'Inter-Bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  statTitle: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  quickActionCard: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  quickActionSubtext: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  appointmentStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  appointmentStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flex: 1,
+    minWidth: '45%',
+  },
+  appointmentStatDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  appointmentStatLabel: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    flex: 1,
+  },
+  appointmentStatValue: {
+    fontSize: 14,
+    fontFamily: 'Inter-Bold',
+    color: '#111827',
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  activityIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityMessage: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  activityTime: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   emptyState: {
     padding: 32,
@@ -430,6 +574,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
+    marginTop: 12,
   },
   emptySubtext: {
     fontSize: 14,
@@ -437,106 +582,6 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textAlign: 'center',
     marginTop: 8,
-  },
-  appointmentCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    overflow: 'hidden',
-  },
-  appointmentIndicator: {
-    width: 4,
-    backgroundColor: '#F59E0B',
-  },
-  confirmedIndicator: {
-    backgroundColor: '#10B981',
-  },
-  appointmentContent: {
-    flex: 1,
-    padding: 16,
-  },
-  appointmentService: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  appointmentClient: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#7C3AED',
-    marginBottom: 2,
-  },
-  appointmentDateTime: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    marginBottom: 12,
-  },
-  appointmentActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  confirmButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    gap: 4,
-  },
-  confirmButtonText: {
-    fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
-  cancelButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    gap: 4,
-  },
-  cancelButtonText: {
-    fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    color: '#10B981',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    textAlign: 'center',
   },
   chatCard: {
     flexDirection: 'row',

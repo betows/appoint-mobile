@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Wrench, Calendar, User } from 'lucide-react-native';
+import { Chrome as Home, Calendar, Wrench, User, BarChart3 } from 'lucide-react-native';
 
 export default function ProviderTabLayout() {
   return (
@@ -26,9 +26,18 @@ export default function ProviderTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Dashboard',
           tabBarIcon: ({ size, color }) => (
-            <Home size={size} color={color} />
+            <BarChart3 size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="appointments"
+        options={{
+          title: 'Agendamentos',
+          tabBarIcon: ({ size, color }) => (
+            <Calendar size={size} color={color} />
           ),
         }}
       />
@@ -38,15 +47,6 @@ export default function ProviderTabLayout() {
           title: 'Serviços',
           tabBarIcon: ({ size, color }) => (
             <Wrench size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          title: 'Calendário',
-          tabBarIcon: ({ size, color }) => (
-            <Calendar size={size} color={color} />
           ),
         }}
       />
