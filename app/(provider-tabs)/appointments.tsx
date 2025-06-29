@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar, Clock, MapPin, User, CheckCircle, X, Filter } from 'lucide-react-native';
+import { Calendar, Clock, MapPin, User, CircleCheck as CheckCircle, X, Filter } from 'lucide-react-native';
 import { mockAppointments } from '@/data/mockData';
 
 export default function ProviderAppointments() {

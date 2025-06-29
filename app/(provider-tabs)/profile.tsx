@@ -1,10 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  Edit, Star, MapPin, Phone, Mail, Settings, LogOut, 
-  Bell, Shield, HelpCircle, CreditCard, Users, 
-  ChevronRight, Moon, Globe
-} from 'lucide-react-native';
+import { CreditCard as Edit, Star, MapPin, Phone, Mail, Settings, LogOut, Bell, Shield, CircleHelp as HelpCircle, CreditCard, Users, ChevronRight, Moon, Globe } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { mockUsers } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
