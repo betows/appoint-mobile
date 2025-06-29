@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 const weekDays = [
   { day: 'segunda', date: '16', isToday: false },
@@ -29,9 +29,41 @@ const periods = [
 ];
 
 export default function BookingCalendar() {
+  const { serviceId, appointmentId, reschedule } = useLocalSearchParams<{ 
+    serviceId?: string; 
+    appointmentId?: string; 
+    reschedule?: string; 
+  }>();
+  
   const [selectedDay, setSelectedDay] = useState('17');
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('Tarde');
+
+  const isRescheduling = reschedule === 'true';
+
+  const handleConfirmBooking = () => {
+    if (!selectedTime) {
+      Alert.alert('Erro', 'Por favor, selecione um horário.');
+      return;
+    }
+
+    const message = isRescheduling 
+      ? 'Agendamento reagendado com sucesso!'
+      : 'Agendamento confirmado com sucesso!';
+
+    Alert.alert(
+      'Sucesso',
+      message,
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            router.back();
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -48,6 +80,16 @@ export default function BookingCalendar() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Title */}
+        <View style={styles.titleSection}>
+          <Text style={styles.title}>
+            {isRescheduling ? 'Reagendar Serviço' : 'Agendar Serviço'}
+          </Text>
+          <Text style={styles.subtitle}>
+            Selecione o dia e horário desejado
+          </Text>
+        </View>
+
         {/* Week Calendar */}
         <View style={styles.calendarSection}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -143,12 +185,11 @@ export default function BookingCalendar() {
         <View style={styles.bookingSection}>
           <TouchableOpacity
             style={styles.bookButton}
-            onPress={() => {
-              // Handle booking
-              router.back();
-            }}
+            onPress={handleConfirmBooking}
           >
-            <Text style={styles.bookButtonText}>Confirmar Agendamento</Text>
+            <Text style={styles.bookButtonText}>
+              {isRescheduling ? 'Confirmar Reagendamento' : 'Confirmar Agendamento'}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -185,6 +226,21 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  titleSection: {
+    padding: 24,
+    paddingBottom: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontFamily: 'Inter-Bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   calendarSection: {
     paddingVertical: 24,

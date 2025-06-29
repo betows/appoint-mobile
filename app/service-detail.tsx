@@ -2,14 +2,19 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Clock, Star } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { mockServices, mockProfessionals } from '@/data/mockData';
 
 export default function ServiceDetail() {
+  const { serviceId } = useLocalSearchParams<{ serviceId: string }>();
   const [activeTab, setActiveTab] = useState('Descrição');
   
-  const service = mockServices[0]; // Featured service
+  const service = mockServices.find(s => s.id === serviceId) || mockServices[0];
   const provider = mockProfessionals.find(p => p.id === service.providerId);
+
+  const relatedServices = mockServices.filter(s => 
+    s.providerId === service.providerId && s.id !== service.id
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -38,7 +43,14 @@ export default function ServiceDetail() {
           <Text style={styles.serviceName}>{service.name}</Text>
           <Text style={styles.serviceDuration}>Tempo: {service.duration}</Text>
           <Text style={styles.servicePrice}>Preço: R$ {service.price}</Text>
-          <Text style={styles.serviceProvider}>Prestador: {provider?.name}</Text>
+          <TouchableOpacity 
+            onPress={() => router.push({
+              pathname: '/professional-detail',
+              params: { professionalId: service.providerId }
+            })}
+          >
+            <Text style={styles.serviceProvider}>Prestador: {provider?.name}</Text>
+          </TouchableOpacity>
           <View style={styles.ratingContainer}>
             <Text style={styles.ratingLabel}>Avaliações: </Text>
             <Star size={16} color="#F59E0B" fill="#F59E0B" />
@@ -114,29 +126,41 @@ export default function ServiceDetail() {
         )}
 
         {/* Related Services */}
-        <View style={styles.relatedSection}>
-          <Text style={styles.sectionTitle}>Outros serviços do prestador</Text>
-          {mockServices.filter(s => s.providerId === service.providerId && s.id !== service.id).map((relatedService) => (
-            <TouchableOpacity key={relatedService.id} style={styles.relatedServiceCard}>
-              <Image
-                source={{ uri: relatedService.image }}
-                style={styles.relatedServiceImage}
-              />
-              <View style={styles.relatedServiceInfo}>
-                <Text style={styles.relatedServiceName}>{relatedService.name}</Text>
-                <Text style={styles.relatedServicePrice}>R$ {relatedService.price}</Text>
-                <Text style={styles.relatedServiceDuration}>{relatedService.duration}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {relatedServices.length > 0 && (
+          <View style={styles.relatedSection}>
+            <Text style={styles.sectionTitle}>Outros serviços do prestador</Text>
+            {relatedServices.map((relatedService) => (
+              <TouchableOpacity 
+                key={relatedService.id} 
+                style={styles.relatedServiceCard}
+                onPress={() => router.push({
+                  pathname: '/service-detail',
+                  params: { serviceId: relatedService.id }
+                })}
+              >
+                <Image
+                  source={{ uri: relatedService.image }}
+                  style={styles.relatedServiceImage}
+                />
+                <View style={styles.relatedServiceInfo}>
+                  <Text style={styles.relatedServiceName}>{relatedService.name}</Text>
+                  <Text style={styles.relatedServicePrice}>R$ {relatedService.price}</Text>
+                  <Text style={styles.relatedServiceDuration}>{relatedService.duration}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       {/* Book Button */}
       <View style={styles.bookingSection}>
         <TouchableOpacity
           style={styles.bookButton}
-          onPress={() => router.push('/booking-calendar')}
+          onPress={() => router.push({
+            pathname: '/booking-calendar',
+            params: { serviceId: service.id }
+          })}
         >
           <Text style={styles.bookButtonText}>Agendar Serviço</Text>
         </TouchableOpacity>
@@ -216,6 +240,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#10B981',
     marginBottom: 8,
+    textDecorationLine: 'underline',
   },
   ratingContainer: {
     flexDirection: 'row',

@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
 import { mockAppointments } from '@/data/mockData';
+import { router } from 'expo-router';
 
 export default function CustomerBookings() {
-  const customerAppointments = mockAppointments.filter(apt => apt.client === 'João Silva');
+  const [appointments, setAppointments] = useState(mockAppointments.filter(apt => apt.client === 'João Silva'));
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -36,6 +38,39 @@ export default function CustomerBookings() {
     }
   };
 
+  const handleCancelAppointment = (appointmentId: string) => {
+    Alert.alert(
+      'Cancelar Agendamento',
+      'Tem certeza que deseja cancelar este agendamento?',
+      [
+        {
+          text: 'Não',
+          style: 'cancel',
+        },
+        {
+          text: 'Sim',
+          style: 'destructive',
+          onPress: () => {
+            setAppointments(prev => 
+              prev.map(apt => 
+                apt.id === appointmentId 
+                  ? { ...apt, status: 'cancelled' as const }
+                  : apt
+              )
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRescheduleAppointment = (appointmentId: string) => {
+    router.push({
+      pathname: '/booking-calendar',
+      params: { appointmentId, reschedule: 'true' }
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -43,7 +78,7 @@ export default function CustomerBookings() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {customerAppointments.length === 0 ? (
+        {appointments.length === 0 ? (
           <View style={styles.emptyState}>
             <Calendar size={48} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>Nenhum agendamento</Text>
@@ -52,7 +87,7 @@ export default function CustomerBookings() {
             </Text>
           </View>
         ) : (
-          customerAppointments.map((appointment) => (
+          appointments.map((appointment) => (
             <View key={appointment.id} style={styles.appointmentCard}>
               <View
                 style={[
@@ -103,10 +138,27 @@ export default function CustomerBookings() {
 
                 {appointment.status === 'pending' && (
                   <View style={styles.appointmentActions}>
-                    <TouchableOpacity style={styles.cancelButton}>
+                    <TouchableOpacity 
+                      style={styles.cancelButton}
+                      onPress={() => handleCancelAppointment(appointment.id)}
+                    >
                       <Text style={styles.cancelButtonText}>Cancelar</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.rescheduleButton}>
+                    <TouchableOpacity 
+                      style={styles.rescheduleButton}
+                      onPress={() => handleRescheduleAppointment(appointment.id)}
+                    >
+                      <Text style={styles.rescheduleButtonText}>Reagendar</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {appointment.status === 'confirmed' && (
+                  <View style={styles.appointmentActions}>
+                    <TouchableOpacity 
+                      style={styles.rescheduleButton}
+                      onPress={() => handleRescheduleAppointment(appointment.id)}
+                    >
                       <Text style={styles.rescheduleButtonText}>Reagendar</Text>
                     </TouchableOpacity>
                   </View>

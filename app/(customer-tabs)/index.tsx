@@ -25,10 +25,22 @@ export default function CustomerHome() {
     ? mockProfessionals.filter(p => p.category === selectedCategory).slice(0, 4)
     : mockProfessionals.slice(0, 4);
 
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      router.push({
+        pathname: '/(customer-tabs)/professionals',
+        params: { search: searchQuery }
+      });
+    }
+  };
+
   const renderServiceCard = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.serviceSliderCard}
-      onPress={() => router.push('/service-detail')}
+      onPress={() => router.push({
+        pathname: '/service-detail',
+        params: { serviceId: item.id }
+      })}
     >
       <Image source={{ uri: item.image }} style={styles.serviceSliderImage} />
       <View style={styles.serviceSliderInfo}>
@@ -53,7 +65,13 @@ export default function CustomerHome() {
           <View style={styles.headerContent}>
             <View style={styles.headerTop}>
               <Text style={styles.appName}>Appoint</Text>
-              <TouchableOpacity style={styles.notificationButton}>
+              <TouchableOpacity 
+                style={styles.notificationButton}
+                onPress={() => {
+                  // Navigate to notifications
+                  console.log('Navigate to notifications');
+                }}
+              >
                 <Bell size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
@@ -67,8 +85,9 @@ export default function CustomerHome() {
                   placeholderTextColor="#9CA3AF"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
+                  onSubmitEditing={handleSearch}
                 />
-                <TouchableOpacity style={styles.searchButton}>
+                <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
                   <Search size={20} color="#6B7280" />
                 </TouchableOpacity>
               </View>
@@ -144,7 +163,7 @@ export default function CustomerHome() {
               </Text>
               <TouchableOpacity 
                 style={styles.seeMoreButton}
-                onPress={() => router.push('/professionals')}
+                onPress={() => router.push('/(customer-tabs)/professionals')}
               >
                 <Text style={styles.seeMore}>Ver mais</Text>
                 <ChevronRight size={16} color="#10B981" />
@@ -155,7 +174,10 @@ export default function CustomerHome() {
               <TouchableOpacity
                 key={professional.id}
                 style={styles.professionalCard}
-                onPress={() => router.push('/professional-detail')}
+                onPress={() => router.push({
+                  pathname: '/professional-detail',
+                  params: { professionalId: professional.id }
+                })}
               >
                 <Image
                   source={{ uri: professional.avatar }}
@@ -187,7 +209,7 @@ export default function CustomerHome() {
               </Text>
               <TouchableOpacity 
                 style={styles.seeMoreButton}
-                onPress={() => router.push('/professionals')}
+                onPress={() => router.push('/(customer-tabs)/professionals')}
               >
                 <Text style={styles.seeMore}>Ver mais</Text>
                 <ChevronRight size={16} color="#10B981" />
@@ -274,12 +296,16 @@ const styles = StyleSheet.create({
   sectionHeader: {
     paddingHorizontal: 24,
     marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   sectionTitle: {
     fontSize: 20,
     fontFamily: 'Inter-Bold',
     color: '#111827',
     marginBottom: 4,
+    flex: 1,
   },
   sectionSubtitle: {
     fontSize: 14,

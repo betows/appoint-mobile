@@ -1,16 +1,65 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, CircleCheck as CheckCircle, X } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { mockUsers, mockAppointments } from '@/data/mockData';
 
 export default function ProviderDashboard() {
   const [activeTab, setActiveTab] = useState('Agendamentos');
+  const [appointments, setAppointments] = useState(mockAppointments);
   
   const provider = mockUsers.find(user => user.type === 'provider');
-  const pendingAppointments = mockAppointments.filter(apt => apt.status === 'pending');
-  const confirmedAppointments = mockAppointments.filter(apt => apt.status === 'confirmed');
+  const pendingAppointments = appointments.filter(apt => apt.status === 'pending');
+  const confirmedAppointments = appointments.filter(apt => apt.status === 'confirmed');
+
+  const handleConfirmAppointment = (appointmentId: string) => {
+    Alert.alert(
+      'Confirmar Agendamento',
+      'Deseja confirmar este agendamento?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Confirmar',
+          onPress: () => {
+            setAppointments(prev =>
+              prev.map(apt =>
+                apt.id === appointmentId
+                  ? { ...apt, status: 'confirmed' as const }
+                  : apt
+              )
+            );
+            Alert.alert('Sucesso', 'Agendamento confirmado!');
+          }
+        }
+      ]
+    );
+  };
+
+  const handleCancelAppointment = (appointmentId: string) => {
+    Alert.alert(
+      'Cancelar Agendamento',
+      'Deseja cancelar este agendamento?',
+      [
+        { text: 'Não', style: 'cancel' },
+        {
+          text: 'Sim',
+          style: 'destructive',
+          onPress: () => {
+            setAppointments(prev =>
+              prev.map(apt =>
+                apt.id === appointmentId
+                  ? { ...apt, status: 'cancelled' as const }
+                  : apt
+              )
+            );
+            Alert.alert('Agendamento Cancelado', 'O agendamento foi cancelado.');
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -31,7 +80,10 @@ export default function ProviderDashboard() {
                   <Text style={styles.serviceName}>{provider?.name}</Text>
                   <Text style={styles.email}>{provider?.email}</Text>
                 </View>
-                <TouchableOpacity style={styles.editButton}>
+                <TouchableOpacity 
+                  style={styles.editButton}
+                  onPress={() => router.push('/(provider-tabs)/profile')}
+                >
                   <Text style={styles.editButtonText}>Editar</Text>
                 </TouchableOpacity>
               </View>
@@ -51,7 +103,10 @@ export default function ProviderDashboard() {
         <TouchableOpacity style={[styles.tab, styles.activeTab]}>
           <Text style={[styles.tabText, styles.activeTabText]}>Agendamentos</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tab}>
+        <TouchableOpacity 
+          style={styles.tab}
+          onPress={() => router.push('/chat')}
+        >
           <Text style={styles.tabText}>Conversas</Text>
         </TouchableOpacity>
       </View>
@@ -65,51 +120,69 @@ export default function ProviderDashboard() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Agendamentos Pendentes</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('/(provider-tabs)/calendar')}>
                 <Text style={styles.calendarLink}>Ver calendário</Text>
               </TouchableOpacity>
             </View>
 
-            {pendingAppointments.map((appointment) => (
-              <View key={appointment.id} style={styles.appointmentCard}>
-                <View style={styles.appointmentIndicator} />
-                <View style={styles.appointmentContent}>
-                  <Text style={styles.appointmentService}>{appointment.service}</Text>
-                  <Text style={styles.appointmentClient}>Cliente: {appointment.client}</Text>
-                  <Text style={styles.appointmentDateTime}>
-                    Data: {appointment.date}, {appointment.time}
-                  </Text>
-                  <View style={styles.appointmentActions}>
-                    <TouchableOpacity style={styles.confirmButton}>
-                      <CheckCircle size={16} color="#FFFFFF" />
-                      <Text style={styles.confirmButtonText}>Confirmar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.cancelButton}>
-                      <X size={16} color="#FFFFFF" />
-                      <Text style={styles.cancelButtonText}>Cancelar</Text>
-                    </TouchableOpacity>
+            {pendingAppointments.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>Nenhum agendamento pendente</Text>
+              </View>
+            ) : (
+              pendingAppointments.map((appointment) => (
+                <View key={appointment.id} style={styles.appointmentCard}>
+                  <View style={styles.appointmentIndicator} />
+                  <View style={styles.appointmentContent}>
+                    <Text style={styles.appointmentService}>{appointment.service}</Text>
+                    <Text style={styles.appointmentClient}>Cliente: {appointment.client}</Text>
+                    <Text style={styles.appointmentDateTime}>
+                      Data: {appointment.date}, {appointment.time}
+                    </Text>
+                    <View style={styles.appointmentActions}>
+                      <TouchableOpacity 
+                        style={styles.confirmButton}
+                        onPress={() => handleConfirmAppointment(appointment.id)}
+                      >
+                        <CheckCircle size={16} color="#FFFFFF" />
+                        <Text style={styles.confirmButtonText}>Confirmar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.cancelButton}
+                        onPress={() => handleCancelAppointment(appointment.id)}
+                      >
+                        <X size={16} color="#FFFFFF" />
+                        <Text style={styles.cancelButtonText}>Cancelar</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-              </View>
-            ))}
+              ))
+            )}
           </View>
 
           {/* Confirmed Appointments */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Agendamentos Confirmados</Text>
             
-            {confirmedAppointments.map((appointment) => (
-              <View key={appointment.id} style={styles.appointmentCard}>
-                <View style={[styles.appointmentIndicator, styles.confirmedIndicator]} />
-                <View style={styles.appointmentContent}>
-                  <Text style={styles.appointmentService}>{appointment.service}</Text>
-                  <Text style={styles.appointmentClient}>Cliente: {appointment.client}</Text>
-                  <Text style={styles.appointmentDateTime}>
-                    Data: {appointment.date}, {appointment.time}
-                  </Text>
-                </View>
+            {confirmedAppointments.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>Nenhum agendamento confirmado</Text>
               </View>
-            ))}
+            ) : (
+              confirmedAppointments.map((appointment) => (
+                <View key={appointment.id} style={styles.appointmentCard}>
+                  <View style={[styles.appointmentIndicator, styles.confirmedIndicator]} />
+                  <View style={styles.appointmentContent}>
+                    <Text style={styles.appointmentService}>{appointment.service}</Text>
+                    <Text style={styles.appointmentClient}>Cliente: {appointment.client}</Text>
+                    <Text style={styles.appointmentDateTime}>
+                      Data: {appointment.date}, {appointment.time}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -228,6 +301,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#10B981',
+  },
+  emptyState: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   appointmentCard: {
     flexDirection: 'row',

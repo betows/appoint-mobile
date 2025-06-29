@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight, Bell } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,7 +13,7 @@ const monthDays = [
   [29, 30, 1, 2, 3, 4, 5],
 ];
 
-const dayStatus = {
+const initialDayStatus = {
   2: 'available',
   3: 'available', 
   4: 'booked',
@@ -48,6 +48,7 @@ const workingHours = [
 export default function ProviderCalendar() {
   const [selectedDay, setSelectedDay] = useState(11);
   const [currentMonth, setCurrentMonth] = useState('junho 2025');
+  const [dayStatus, setDayStatus] = useState(initialDayStatus);
 
   const getDayStyle = (day: number | null) => {
     if (!day) return styles.emptyDay;
@@ -121,6 +122,65 @@ export default function ProviderCalendar() {
     }
   };
 
+  const handleBlockDay = () => {
+    if (!selectedDay) return;
+    
+    Alert.alert(
+      'Bloquear Dia',
+      `Deseja bloquear o dia ${selectedDay} de junho?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Bloquear',
+          style: 'destructive',
+          onPress: () => {
+            setDayStatus(prev => ({
+              ...prev,
+              [selectedDay]: 'blocked'
+            }));
+          }
+        }
+      ]
+    );
+  };
+
+  const handleBlockTime = () => {
+    if (!selectedDay) return;
+    
+    Alert.alert(
+      'Bloquear Horário',
+      'Funcionalidade de bloqueio de horário específico será implementada em breve.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleConfirmAppointment = () => {
+    setDayStatus(prev => ({
+      ...prev,
+      [selectedDay]: 'booked'
+    }));
+    
+    Alert.alert('Sucesso', 'Agendamento confirmado!');
+  };
+
+  const handleCancelAppointment = () => {
+    setDayStatus(prev => ({
+      ...prev,
+      [selectedDay]: 'available'
+    }));
+    
+    Alert.alert('Agendamento Cancelado', 'O agendamento foi cancelado.');
+  };
+
+  const handleUnblockDay = () => {
+    setDayStatus(prev => ({
+      ...prev,
+      [selectedDay]: 'available'
+    }));
+    
+    Alert.alert('Dia Desbloqueado', 'O dia foi desbloqueado e está disponível novamente.');
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -192,15 +252,21 @@ export default function ProviderCalendar() {
                 quarta-feira, {selectedDay} de junho
               </Text>
               <View style={styles.dayActions}>
-                <TouchableOpacity style={styles.blockDayButton}>
+                <TouchableOpacity 
+                  style={styles.blockDayButton}
+                  onPress={handleBlockDay}
+                >
                   <Text style={styles.blockDayButtonText}>Bloquear o dia inteiro</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.blockTimeButton}>
+                <TouchableOpacity 
+                  style={styles.blockTimeButton}
+                  onPress={handleBlockTime}
+                >
                   <Text style={styles.blockTimeButtonText}>Bloquear horário</Text>
                 </TouchableOpacity>
               </View>
 
-              {selectedDay === 11 && (
+              {selectedDay === 11 && dayStatus[11] === 'pending' && (
                 <View style={styles.pendingSection}>
                   <Text style={styles.pendingTitle}>Pendentes</Text>
                   <View style={styles.pendingCard}>
@@ -210,10 +276,16 @@ export default function ProviderCalendar() {
                       <Text style={styles.pendingClient}>Cliente: João Silva</Text>
                       <Text style={styles.pendingTime}>Horário: 13:30</Text>
                       <View style={styles.pendingActions}>
-                        <TouchableOpacity style={styles.confirmButton}>
+                        <TouchableOpacity 
+                          style={styles.confirmButton}
+                          onPress={handleConfirmAppointment}
+                        >
                           <Text style={styles.confirmButtonText}>Confirmar</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.cancelButton}>
+                        <TouchableOpacity 
+                          style={styles.cancelButton}
+                          onPress={handleCancelAppointment}
+                        >
                           <Text style={styles.cancelButtonText}>Cancelar</Text>
                         </TouchableOpacity>
                       </View>
@@ -222,7 +294,7 @@ export default function ProviderCalendar() {
                 </View>
               )}
 
-              {selectedDay === 6 && (
+              {selectedDay === 6 && dayStatus[6] === 'blocked' && (
                 <View style={styles.blockedSection}>
                   <Text style={styles.blockedTitle}>Bloqueios</Text>
                   <View style={styles.blockedCard}>
@@ -230,7 +302,10 @@ export default function ProviderCalendar() {
                     <View style={styles.blockedContent}>
                       <Text style={styles.blockedText}>Bloqueado</Text>
                       <Text style={styles.blockedTime}>Bloqueado das 08:00 às 23:00</Text>
-                      <TouchableOpacity style={styles.unblockButton}>
+                      <TouchableOpacity 
+                        style={styles.unblockButton}
+                        onPress={handleUnblockDay}
+                      >
                         <Text style={styles.unblockButtonText}>Desbloquear</Text>
                       </TouchableOpacity>
                     </View>

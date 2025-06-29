@@ -1,35 +1,70 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, CreditCard as Edit, Trash2, Clock, DollarSign } from 'lucide-react-native';
 import { mockServices } from '@/data/mockData';
 
 export default function ProviderServices() {
-  const providerServices = mockServices.filter(service => service.providerId === 'provider-1');
+  const [services, setServices] = useState(mockServices.filter(service => service.providerId === 'provider-1'));
+
+  const handleAddService = () => {
+    Alert.alert(
+      'Adicionar Serviço',
+      'Funcionalidade de adicionar serviço será implementada em breve.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleEditService = (serviceId: string) => {
+    Alert.alert(
+      'Editar Serviço',
+      'Funcionalidade de editar serviço será implementada em breve.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleDeleteService = (serviceId: string) => {
+    Alert.alert(
+      'Excluir Serviço',
+      'Tem certeza que deseja excluir este serviço?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => {
+            setServices(prev => prev.filter(service => service.id !== serviceId));
+            Alert.alert('Sucesso', 'Serviço excluído com sucesso!');
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Meus Serviços</Text>
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity style={styles.addButton} onPress={handleAddService}>
           <Plus size={20} color="#FFFFFF" />
           <Text style={styles.addButtonText}>Adicionar</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {providerServices.length === 0 ? (
+        {services.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Nenhum serviço cadastrado</Text>
             <Text style={styles.emptySubtitle}>
               Adicione seus primeiros serviços para começar a receber clientes
             </Text>
-            <TouchableOpacity style={styles.emptyButton}>
+            <TouchableOpacity style={styles.emptyButton} onPress={handleAddService}>
               <Plus size={20} color="#10B981" />
               <Text style={styles.emptyButtonText}>Adicionar Serviço</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          providerServices.map((service) => (
+          services.map((service) => (
             <View key={service.id} style={styles.serviceCard}>
               <Image
                 source={{ uri: service.image }}
@@ -39,10 +74,16 @@ export default function ProviderServices() {
                 <View style={styles.serviceHeader}>
                   <Text style={styles.serviceName}>{service.name}</Text>
                   <View style={styles.serviceActions}>
-                    <TouchableOpacity style={styles.actionButton}>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleEditService(service.id)}
+                    >
                       <Edit size={16} color="#6B7280" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionButton}>
+                    <TouchableOpacity 
+                      style={styles.actionButton}
+                      onPress={() => handleDeleteService(service.id)}
+                    >
                       <Trash2 size={16} color="#EF4444" />
                     </TouchableOpacity>
                   </View>

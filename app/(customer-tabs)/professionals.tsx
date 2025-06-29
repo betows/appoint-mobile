@@ -1,14 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Star, MessageCircle, Bell } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { mockProfessionals, mockServices } from '@/data/mockData';
 
 export default function Professionals() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const { search } = useLocalSearchParams<{ search?: string }>();
+  const [searchQuery, setSearchQuery] = useState(search || '');
   const [activeTab, setActiveTab] = useState<'profissionais' | 'servicos'>('profissionais');
+
+  useEffect(() => {
+    if (search) {
+      setSearchQuery(search);
+    }
+  }, [search]);
 
   const filteredProfessionals = mockProfessionals.filter(professional =>
     professional.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -19,6 +26,14 @@ export default function Professionals() {
     service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     service.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleChatPress = (professionalId: string) => {
+    // Navigate to chat with specific professional
+    router.push({
+      pathname: '/chat-detail',
+      params: { professionalId }
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -113,7 +128,10 @@ export default function Professionals() {
                   <TouchableOpacity
                     key={professional.id}
                     style={styles.professionalCard}
-                    onPress={() => router.push('/professional-detail')}
+                    onPress={() => router.push({
+                      pathname: '/professional-detail',
+                      params: { professionalId: professional.id }
+                    })}
                   >
                     <Image
                       source={{ uri: professional.avatar }}
@@ -131,7 +149,13 @@ export default function Professionals() {
                       <Text style={styles.professionalAddress}>{professional.address}</Text>
                     </View>
                     <View style={styles.professionalActions}>
-                      <TouchableOpacity style={styles.actionButton}>
+                      <TouchableOpacity 
+                        style={styles.actionButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleChatPress(professional.id);
+                        }}
+                      >
                         <MessageCircle size={20} color="#10B981" />
                       </TouchableOpacity>
                     </View>
@@ -156,7 +180,10 @@ export default function Professionals() {
                   <TouchableOpacity
                     key={service.id}
                     style={styles.serviceCard}
-                    onPress={() => router.push('/service-detail')}
+                    onPress={() => router.push({
+                      pathname: '/service-detail',
+                      params: { serviceId: service.id }
+                    })}
                   >
                     <Image
                       source={{ uri: service.image }}

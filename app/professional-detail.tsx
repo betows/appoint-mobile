@@ -2,14 +2,22 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Star, Clock, MessageCircle } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { mockProfessionals, mockServices } from '@/data/mockData';
 
 export default function ProfessionalDetail() {
+  const { professionalId } = useLocalSearchParams<{ professionalId: string }>();
   const [activeTab, setActiveTab] = useState('Serviços');
   
-  const professional = mockProfessionals[0];
+  const professional = mockProfessionals.find(p => p.id === professionalId) || mockProfessionals[0];
   const professionalServices = mockServices.filter(service => service.providerId === professional.id);
+
+  const handleChatPress = () => {
+    router.push({
+      pathname: '/chat-detail',
+      params: { professionalId: professional.id }
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -37,7 +45,7 @@ export default function ProfessionalDetail() {
               source={{ uri: professional.avatar }}
               style={styles.avatar}
             />
-            <TouchableOpacity style={styles.chatButton}>
+            <TouchableOpacity style={styles.chatButton} onPress={handleChatPress}>
               <MessageCircle size={20} color="#FFFFFF" />
               <Text style={styles.chatButtonText}>Conversar</Text>
             </TouchableOpacity>
@@ -96,7 +104,10 @@ export default function ProfessionalDetail() {
               <TouchableOpacity
                 key={service.id}
                 style={styles.serviceCard}
-                onPress={() => router.push('/service-detail')}
+                onPress={() => router.push({
+                  pathname: '/service-detail',
+                  params: { serviceId: service.id }
+                })}
               >
                 <Image
                   source={{ uri: service.image }}
