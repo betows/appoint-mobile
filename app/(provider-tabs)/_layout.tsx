@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { ChartBar as BarChart3, Calendar, Wrench, User } from 'lucide-react-native';
+import { BarChart3, Wrench, User } from 'lucide-react-native';
 
 export default function ProviderTabLayout() {
   return (
@@ -33,20 +33,20 @@ export default function ProviderTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="appointments"
-        options={{
-          title: 'Agendamentos',
-          tabBarIcon: ({ size, color }) => (
-            <Calendar size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="services"
         options={{
           title: 'Serviços',
           tabBarIcon: ({ size, color }) => (
             <Wrench size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Calendário',
+          tabBarIcon: ({ size, color }) => (
+            <BarChart3 size={size} color={color} />
           ),
         }}
       />
