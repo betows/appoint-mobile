@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { ChartBar as BarChart3, Wrench, User } from 'lucide-react-native';
+import { ChartBar as BarChart3, Wrench, Calendar, User } from 'lucide-react-native';
 
 export default function ProviderTabLayout() {
   return (
@@ -46,7 +46,7 @@ export default function ProviderTabLayout() {
         options={{
           title: 'Calendário',
           tabBarIcon: ({ size, color }) => (
-            <BarChart3 size={size} color={color} />
+            <Calendar size={size} color={color} />
           ),
         }}
       />
