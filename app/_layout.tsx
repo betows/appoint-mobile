@@ -41,7 +41,6 @@ export default function RootLayout() {
         <Stack.Screen name="(customer-tabs)" />
         <Stack.Screen name="(provider-tabs)" />
         <Stack.Screen name="booking" />
-        <Stack.Screen name="chat" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
