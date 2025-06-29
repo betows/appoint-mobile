@@ -13,7 +13,7 @@ export default function CustomerTabLayout() {
           borderTopWidth: 1,
           borderTopColor: '#E5E7EB',
           paddingTop: 8,
-          paddingBottom: 24,
+          paddingBottom: 12,
           height: 84,
         },
         tabBarLabelStyle: {

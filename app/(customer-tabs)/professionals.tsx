@@ -1,15 +1,96 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Star, MessageCircle, Bell } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { mockProfessionals, mockServices } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+
+const API_URL = 'http://localhost:5000/api/v1';
+
+interface Professional {
+  id: string;
+  legalName: string;
+  image: string;
+  rating: number;
+  ratingCount: number;
+  description: string;
+  address: { street: string; number: string; cep: string; id: string };
+  servicesCount: number;
+  categories: string[];
+}
+
+interface Service {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  averageTime: string;
+  image: string;
+  category: { name: string };
+  provider: { id: string; legalName: string };
+}
 
 export default function Professionals() {
   const { search } = useLocalSearchParams<{ search?: string }>();
+  const { user, isLoading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState(search || '');
   const [activeTab, setActiveTab] = useState<'profissionais' | 'servicos'>('profissionais');
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchProfessionals = useCallback(async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/marketplace/providers?search=${searchQuery}`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch professionals');
+      }
+      setProfessionals(data.result);
+    } catch (error) {
+      console.error('Failed to fetch professionals:', error);
+      Alert.alert('Erro', 'Falha ao carregar profissionais.');
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, user?.token]);
+
+  const fetchServices = useCallback(async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/marketplace/services?search=${searchQuery}`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch services');
+      }
+      setServices(data.map((s: any) => ({ ...s, category: s.category })));
+    } catch (error) {
+      console.error('Failed to fetch services:', error);
+      Alert.alert('Erro', 'Falha ao carregar serviços.');
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, user?.token]);
+
+  useEffect(() => {
+    if (activeTab === 'profissionais') {
+      fetchProfessionals();
+    } else {
+      fetchServices();
+    }
+  }, [activeTab, fetchProfessionals, fetchServices]);
 
   useEffect(() => {
     if (search) {
@@ -17,23 +98,21 @@ export default function Professionals() {
     }
   }, [search]);
 
-  const filteredProfessionals = mockProfessionals.filter(professional =>
-    professional.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    professional.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredServices = mockServices.filter(service =>
-    service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    service.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleChatPress = (professionalId: string) => {
-    // Navigate to chat with specific professional
+  const handleChatPress = (professionalId: string, professionalName: string) => {
     router.push({
       pathname: '/chat-detail',
-      params: { professionalId }
+      params: { professionalId, professionalName }
     });
   };
+
+  if (authLoading || loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingText}>Carregando...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -64,6 +143,7 @@ export default function Professionals() {
                   placeholderTextColor="#6B7280"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
+                  onSubmitEditing={() => { /* Trigger fetch on submit */ if (activeTab === 'profissionais') fetchProfessionals(); else fetchServices(); }}
                 />
               </View>
             </View>
@@ -116,7 +196,7 @@ export default function Professionals() {
           {/* Professionals Tab */}
           {activeTab === 'profissionais' && (
             <>
-              {filteredProfessionals.length === 0 ? (
+              {professionals.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyTitle}>Nenhum profissional encontrado</Text>
                   <Text style={styles.emptySubtitle}>
@@ -124,7 +204,7 @@ export default function Professionals() {
                   </Text>
                 </View>
               ) : (
-                filteredProfessionals.map((professional) => (
+                professionals.map((professional) => (
                   <TouchableOpacity
                     key={professional.id}
                     style={styles.professionalCard}
@@ -134,26 +214,26 @@ export default function Professionals() {
                     })}
                   >
                     <Image
-                      source={{ uri: professional.avatar }}
+                      source={{ uri: professional.image || 'https://via.placeholder.com/56' }}
                       style={styles.professionalAvatar}
                     />
                     <View style={styles.professionalInfo}>
-                      <Text style={styles.professionalName}>{professional.name}</Text>
+                      <Text style={styles.professionalName}>{professional.legalName}</Text>
                       <View style={styles.professionalRating}>
                         <Star size={14} color="#F59E0B" fill="#F59E0B" />
                         <Text style={styles.professionalRatingText}>
-                          {professional.rating} • {professional.services} serviços
+                          {professional.rating} • {professional.servicesCount} serviços
                         </Text>
                       </View>
-                      <Text style={styles.professionalCategory}>{professional.category}</Text>
-                      <Text style={styles.professionalAddress}>{professional.address}</Text>
+                      <Text style={styles.professionalCategory}>{professional.categories.join(', ')}</Text>
+                      <Text style={styles.professionalAddress}>{professional.address?.street || 'N/A'}</Text>
                     </View>
                     <View style={styles.professionalActions}>
                       <TouchableOpacity 
                         style={styles.actionButton}
                         onPress={(e) => {
                           e.stopPropagation();
-                          handleChatPress(professional.id);
+                          handleChatPress(professional.id, professional.legalName);
                         }}
                       >
                         <MessageCircle size={20} color="#10B981" />
@@ -168,7 +248,7 @@ export default function Professionals() {
           {/* Services Tab */}
           {activeTab === 'servicos' && (
             <>
-              {filteredServices.length === 0 ? (
+              {services.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Text style={styles.emptyTitle}>Nenhum serviço encontrado</Text>
                   <Text style={styles.emptySubtitle}>
@@ -176,7 +256,7 @@ export default function Professionals() {
                   </Text>
                 </View>
               ) : (
-                filteredServices.map((service) => (
+                services.map((service) => (
                   <TouchableOpacity
                     key={service.id}
                     style={styles.serviceCard}
@@ -186,20 +266,19 @@ export default function Professionals() {
                     })}
                   >
                     <Image
-                      source={{ uri: service.image }}
+                      source={{ uri: service.image || 'https://via.placeholder.com/80' }}
                       style={styles.serviceImage}
                     />
                     <View style={styles.serviceInfo}>
-                      <Text style={styles.serviceName}>{service.name}</Text>
+                      <Text style={styles.serviceName}>{service.title}</Text>
                       <Text style={styles.servicePrice}>R$ {service.price}</Text>
-                      <Text style={styles.serviceDuration}>{service.duration}</Text>
+                      <Text style={styles.serviceDuration}>{service.averageTime}</Text>
                       <View style={styles.serviceRating}>
                         <Star size={12} color="#F59E0B" fill="#F59E0B" />
                         <Text style={styles.serviceRatingText}>
-                          {service.rating} ({service.reviews} avaliações)
+                          {service.provider.legalName} ({service.category.name})
                         </Text>
                       </View>
-                      <Text style={styles.serviceCategory}>{service.category}</Text>
                     </View>
                   </TouchableOpacity>
                 ))
@@ -216,6 +295,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   header: {
     paddingBottom: 32,

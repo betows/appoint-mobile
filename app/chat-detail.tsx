@@ -1,8 +1,11 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Send, Phone, Video } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
+
+const API_URL = 'http://localhost:5000/api/v1';
 
 interface Message {
   id: string;
@@ -11,31 +14,55 @@ interface Message {
   timestamp: string;
 }
 
-const initialMessages: Message[] = [
-  {
-    id: '1',
-    text: 'Olá! Vi que você tem interesse no meu serviço de instalação elétrica. Como posso ajudar?',
-    isFromUser: false,
-    timestamp: '14:30',
-  },
-  {
-    id: '2',
-    text: 'Oi! Preciso de uma instalação de tomadas na sala. Você pode me dar um orçamento?',
-    isFromUser: true,
-    timestamp: '14:32',
-  },
-  {
-    id: '3',
-    text: 'Claro! Para fazer um orçamento preciso, quantas tomadas você precisa instalar?',
-    isFromUser: false,
-    timestamp: '14:33',
-  },
-];
+interface ChatMessage {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  message: string;
+  createdAt: string;
+}
 
 export default function ChatDetail() {
-  const { professionalId } = useLocalSearchParams<{ professionalId: string }>();
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const { professionalId, professionalName } = useLocalSearchParams<{ professionalId: string; professionalName?: string }>();
+  const { user, isLoading: authLoading } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const fetchChatMessages = useCallback(async () => {
+    if (!user?.token || !professionalId) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/chat`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch chat messages');
+      }
+      // Filter messages relevant to this professional and map to local Message interface
+      const filteredAndMappedMessages: Message[] = data
+        .filter((msg: ChatMessage) => msg.senderId === professionalId || msg.receiverId === professionalId)
+        .map((msg: ChatMessage) => ({
+          id: msg.id,
+          text: msg.message,
+          isFromUser: msg.senderId === user.id, // Assuming user.id is the current user's ID
+          timestamp: new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        }));
+      setMessages(filteredAndMappedMessages);
+    } catch (error) {
+      console.error('Failed to fetch chat messages:', error);
+      Alert.alert('Erro', 'Falha ao carregar mensagens do chat.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.token, professionalId, user?.id]);
+
+  useEffect(() => {
+    fetchChatMessages();
+  }, [fetchChatMessages]);
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
@@ -52,7 +79,8 @@ export default function ChatDetail() {
       setMessages(prev => [...prev, message]);
       setNewMessage('');
 
-      // Simulate response after 2 seconds
+      // TODO: Backend does not currently support sending new messages via API.
+      // This is a simulated response.
       setTimeout(() => {
         const response: Message = {
           id: (Date.now() + 1).toString(),
@@ -68,6 +96,15 @@ export default function ChatDetail() {
     }
   };
 
+  if (authLoading || loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingText}>Carregando chat...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -80,7 +117,7 @@ export default function ChatDetail() {
         </TouchableOpacity>
         
         <View style={styles.headerInfo}>
-          <Text style={styles.headerTitle}>ElétricaPro Serviços</Text>
+          <Text style={styles.headerTitle}>{professionalName || 'Chat'}</Text>
           <Text style={styles.headerSubtitle}>Online agora</Text>
         </View>
 
@@ -163,6 +200,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   header: {
     flexDirection: 'row',

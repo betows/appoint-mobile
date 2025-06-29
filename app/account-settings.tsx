@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Bell, Shield, Eye, Trash2, Download } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useAuth, User } from '@/contexts/AuthContext';
 
 export default function AccountSettings() {
+  const { user, updateUser, refreshUser } = useAuth();
+
   const [notifications, setNotifications] = useState({
-    push: true,
+    push: false,
     email: false,
-    sms: true,
+    sms: false,
     marketing: false,
   });
 
@@ -19,25 +22,54 @@ export default function AccountSettings() {
     allowMessages: true,
   });
 
-  const handleNotificationChange = (key: string, value: boolean) => {
-    setNotifications(prev => ({ ...prev, [key]: value }));
+  useEffect(() => {
+    if (user?.notificationPreferences) {
+      setNotifications({
+        push: user.notificationPreferences.includes('APP'),
+        email: false, // Not directly supported by backend schema yet
+        sms: user.notificationPreferences.includes('WHATSAPP'),
+        marketing: false, // Not directly supported by backend schema yet
+      });
+    }
+  }, [user]);
+
+  const handleNotificationChange = async (key: string, value: boolean) => {
+    const newNotifications = { ...notifications, [key]: value };
+    setNotifications(newNotifications);
+
+    const notificationPreferences: ('APP' | 'WHATSAPP')[] = [];
+    if (newNotifications.push) notificationPreferences.push('APP');
+    if (newNotifications.sms) notificationPreferences.push('WHATSAPP');
+
+    try {
+      await updateUser({ notificationPreferences });
+      Alert.alert('Sucesso', 'Preferências de notificação atualizadas!');
+    } catch (error) {
+      console.error('Failed to update notification preferences:', error);
+      Alert.alert('Erro', 'Falha ao atualizar preferências de notificação. Tente novamente.');
+      // Revert state on error
+      setNotifications(notifications);
+    }
   };
 
   const handlePrivacyChange = (key: string, value: boolean) => {
     setPrivacy(prev => ({ ...prev, [key]: value }));
+    // TODO: Integrate with backend for privacy settings if available
+    Alert.alert('Aviso', 'Configurações de privacidade não são persistidas no backend ainda.');
   };
 
   const handleDeleteAccount = () => {
     Alert.alert(
       'Excluir Conta',
-      'Esta ação é irreversível. Todos os seus dados serão permanentemente removidos.',
+      'Esta ação é irreversível. Todos os seus dados serão permanentemente removidos. Deseja continuar?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Excluir',
           style: 'destructive',
           onPress: () => {
-            Alert.alert('Conta Excluída', 'Sua conta foi excluída com sucesso.');
+            // TODO: Implement backend call for account deletion
+            Alert.alert('Conta Excluída', 'Sua conta foi excluída com sucesso (simulado).');
             router.replace('/auth');
           }
         }
@@ -48,7 +80,7 @@ export default function AccountSettings() {
   const handleExportData = () => {
     Alert.alert(
       'Exportar Dados',
-      'Seus dados serão enviados por email em até 24 horas.',
+      'Seus dados serão enviados por email em até 24 horas (simulado).',
       [{ text: 'OK' }]
     );
   };

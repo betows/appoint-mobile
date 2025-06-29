@@ -1,29 +1,141 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, FlatList } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Search, Bell, Star, ChevronRight } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { mockServices, mockProfessionals, categories } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+
+const API_URL = 'http://localhost:5000/api/v1';
+
+interface Service {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  averageTime: string;
+  image: string;
+  category: { name: string };
+  provider: { id: string; legalName: string };
+  rating: number; // Assuming rating is available
+  reviews: number; // Assuming reviews count is available
+}
+
+interface Professional {
+  id: string;
+  legalName: string;
+  image: string;
+  rating: number;
+  ratingCount: number;
+  description: string;
+  address: { street: string };
+  servicesCount: number;
+  categories: string[];
+}
+
+interface Category {
+  id: string;
+  name: string;
+  icon: string; // Assuming icon is a string (e.g., emoji or URL)
+}
 
 export default function CustomerHome() {
+  const { user, isLoading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [topServices, setTopServices] = useState<Service[]>([]);
+  const [lowPriceServices, setLowPriceServices] = useState<Service[]>([]);
+  const [topProfessionals, setTopProfessionals] = useState<Professional[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Get top 6 services based on rating, price, and bookings
-  const topServices = mockServices
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 6);
+  const fetchCategories = useCallback(async () => {
+    if (!user?.token) return;
+    try {
+      const response = await fetch(`${API_URL}/marketplace/categories`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch categories');
+      }
+      setCategories(data.map((cat: any) => ({ ...cat, icon: cat.name.substring(0,1).toUpperCase() }))); // Placeholder for icon
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+      Alert.alert('Erro', 'Falha ao carregar categorias.');
+    }
+  }, [user?.token]);
 
-  // Get services by lowest price in selected category
-  const lowPriceServices = selectedCategory 
-    ? mockServices.filter(s => s.category === selectedCategory).sort((a, b) => a.price - b.price)
-    : mockServices.sort((a, b) => a.price - b.price);
+  const fetchServices = useCallback(async (category?: string) => {
+    if (!user?.token) return;
+    try {
+      const query = category ? `?category=${category}` : '';
+      const response = await fetch(`${API_URL}/marketplace/services${query}`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch services');
+      }
+      const mappedServices = data.map((s: any) => ({
+        id: s.id,
+        title: s.title,
+        description: s.description,
+        price: s.price,
+        averageTime: s.averageTime,
+        image: s.image || 'https://via.placeholder.com/100',
+        category: s.category,
+        provider: s.provider,
+        rating: s.rating || 0, // Assuming rating comes from backend
+        reviews: s.reviews || 0, // Assuming reviews comes from backend
+      }));
 
-  // Get top 4 professionals
-  const topProfessionals = selectedCategory
-    ? mockProfessionals.filter(p => p.category === selectedCategory).slice(0, 4)
-    : mockProfessionals.slice(0, 4);
+      // Client-side sorting for now
+      setTopServices([...mappedServices].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 6));
+      setLowPriceServices([...mappedServices].sort((a, b) => a.price - b.price));
+
+    } catch (error) {
+      console.error('Failed to fetch services:', error);
+      Alert.alert('Erro', 'Falha ao carregar serviços.');
+    }
+  }, [user?.token]);
+
+  const fetchProfessionals = useCallback(async (category?: string) => {
+    if (!user?.token) return;
+    try {
+      const query = category ? `?category=${category}` : '';
+      const response = await fetch(`${API_URL}/marketplace/providers${query}`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch professionals');
+      }
+      setTopProfessionals(data.result.sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0)).slice(0, 4));
+    } catch (error) {
+      console.error('Failed to fetch professionals:', error);
+      Alert.alert('Erro', 'Falha ao carregar profissionais.');
+    }
+  }, [user?.token]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchCategories(),
+        fetchServices(selectedCategory || undefined),
+        fetchProfessionals(selectedCategory || undefined),
+      ]);
+      setLoading(false);
+    };
+    loadData();
+  }, [fetchCategories, fetchServices, fetchProfessionals, selectedCategory]);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -34,7 +146,7 @@ export default function CustomerHome() {
     }
   };
 
-  const renderServiceCard = ({ item }: { item: any }) => (
+  const renderServiceCard = ({ item }: { item: Service }) => (
     <TouchableOpacity
       style={styles.serviceSliderCard}
       onPress={() => router.push({
@@ -44,7 +156,7 @@ export default function CustomerHome() {
     >
       <Image source={{ uri: item.image }} style={styles.serviceSliderImage} />
       <View style={styles.serviceSliderInfo}>
-        <Text style={styles.serviceSliderName} numberOfLines={2}>{item.name}</Text>
+        <Text style={styles.serviceSliderName} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.serviceSliderPrice}>R$ {item.price}</Text>
         <View style={styles.serviceSliderRating}>
           <Star size={12} color="#F59E0B" fill="#F59E0B" />
@@ -53,6 +165,15 @@ export default function CustomerHome() {
       </View>
     </TouchableOpacity>
   );
+
+  if (authLoading || loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingText}>Carregando dados...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -180,19 +301,19 @@ export default function CustomerHome() {
                 })}
               >
                 <Image
-                  source={{ uri: professional.avatar }}
+                  source={{ uri: professional.image || 'https://via.placeholder.com/56' }}
                   style={styles.professionalAvatar}
                 />
                 <View style={styles.professionalInfo}>
-                  <Text style={styles.professionalName}>{professional.name}</Text>
+                  <Text style={styles.professionalName}>{professional.legalName}</Text>
                   <View style={styles.professionalRating}>
                     <Star size={14} color="#F59E0B" fill="#F59E0B" />
                     <Text style={styles.professionalRatingText}>
-                      {professional.rating} • {professional.services} serviços
+                      {professional.rating} • {professional.servicesCount} serviços
                     </Text>
                   </View>
-                  <Text style={styles.professionalCategory}>{professional.category}</Text>
-                  <Text style={styles.professionalAddress}>{professional.address}</Text>
+                  <Text style={styles.professionalCategory}>{professional.categories.join(', ')}</Text>
+                  <Text style={styles.professionalAddress}>{professional.address?.street || 'N/A'}</Text>
                 </View>
                 <View style={styles.professionalBadge}>
                   <Text style={styles.professionalBadgeText}>Verificado</Text>
@@ -234,6 +355,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   header: {
     paddingBottom: 32,

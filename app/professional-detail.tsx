@@ -1,23 +1,98 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Star, Clock, MessageCircle } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { mockProfessionals, mockServices } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+
+const API_URL = 'http://localhost:5000/api/v1';
+
+interface Service {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  averageTime: string; // Assuming duration is a string like "1h 30min"
+  image: string;
+  category: string;
+}
+
+interface Professional {
+  id: string;
+  legalName: string;
+  rating: number;
+  image: string;
+  description: string;
+  ratingCount: number;
+  user: {
+    id: string;
+    address: {
+      street: string;
+      number: string;
+      cep: string;
+      id: string;
+    };
+  };
+  services: Service[];
+}
 
 export default function ProfessionalDetail() {
   const { professionalId } = useLocalSearchParams<{ professionalId: string }>();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('Serviços');
-  
-  const professional = mockProfessionals.find(p => p.id === professionalId) || mockProfessionals[0];
-  const professionalServices = mockServices.filter(service => service.providerId === professional.id);
+  const [professional, setProfessional] = useState<Professional | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfessional = async () => {
+      if (!professionalId || !user?.token) return;
+      setLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/marketplace/providers/${professionalId}`, {
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+          },
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch professional');
+        }
+        setProfessional(data);
+      } catch (error) {
+        console.error('Failed to fetch professional:', error);
+        Alert.alert('Erro', 'Falha ao carregar detalhes do profissional.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfessional();
+  }, [professionalId, user?.token]);
 
   const handleChatPress = () => {
-    router.push({
-      pathname: '/chat-detail',
-      params: { professionalId: professional.id }
-    });
+    if (professional) {
+      router.push({
+        pathname: '/chat-detail',
+        params: { professionalId: professional.id, professionalName: professional.legalName }
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingText}>Carregando profissional...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!professional) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Profissional não encontrado.</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -25,7 +100,7 @@ export default function ProfessionalDetail() {
         {/* Header with background image */}
         <View style={styles.headerContainer}>
           <Image
-            source={{ uri: professional.backgroundImage }}
+            source={{ uri: professional.image || 'https://via.placeholder.com/400x200' }}
             style={styles.backgroundImage}
           />
           <View style={styles.headerOverlay}>
@@ -42,7 +117,7 @@ export default function ProfessionalDetail() {
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
             <Image
-              source={{ uri: professional.avatar }}
+              source={{ uri: professional.image || 'https://via.placeholder.com/80' }}
               style={styles.avatar}
             />
             <TouchableOpacity style={styles.chatButton} onPress={handleChatPress}>
@@ -51,13 +126,13 @@ export default function ProfessionalDetail() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.professionalName}>{professional.name}</Text>
+          <Text style={styles.professionalName}>{professional.legalName}</Text>
           <View style={styles.ratingContainer}>
             <Star size={16} color="#F59E0B" fill="#F59E0B" />
-            <Text style={styles.ratingText}>{professional.rating}</Text>
+            <Text style={styles.ratingText}>{professional.rating} ({professional.ratingCount} avaliações)</Text>
           </View>
           <Text style={styles.description}>{professional.description}</Text>
-          <Text style={styles.address}>Endereço: {professional.address}</Text>
+          <Text style={styles.address}>Endereço: {professional.user?.address?.street || 'N/A'}</Text>
         </View>
 
         {/* Tabs */}
@@ -100,30 +175,34 @@ export default function ProfessionalDetail() {
         {activeTab === 'Serviços' && (
           <View style={styles.servicesSection}>
             <Text style={styles.sectionTitle}>Serviços oferecidos</Text>
-            {professionalServices.map((service) => (
-              <TouchableOpacity
-                key={service.id}
-                style={styles.serviceCard}
-                onPress={() => router.push({
-                  pathname: '/service-detail',
-                  params: { serviceId: service.id }
-                })}
-              >
-                <Image
-                  source={{ uri: service.image }}
-                  style={styles.serviceImage}
-                />
-                <View style={styles.serviceInfo}>
-                  <Text style={styles.serviceName}>{service.name}</Text>
-                  <Text style={styles.servicePrice}>R$ {service.price}</Text>
-                  <View style={styles.serviceDuration}>
-                    <Clock size={14} color="#6B7280" />
-                    <Text style={styles.durationText}>{service.duration}</Text>
+            {professional.services.length === 0 ? (
+              <Text style={styles.emptyText}>Nenhum serviço disponível.</Text>
+            ) : (
+              professional.services.map((service) => (
+                <TouchableOpacity
+                  key={service.id}
+                  style={styles.serviceCard}
+                  onPress={() => router.push({
+                    pathname: '/service-detail',
+                    params: { serviceId: service.id }
+                  })}
+                >
+                  <Image
+                    source={{ uri: service.image || 'https://via.placeholder.com/60' }}
+                    style={styles.serviceImage}
+                  />
+                  <View style={styles.serviceInfo}>
+                    <Text style={styles.serviceName}>{service.title}</Text>
+                    <Text style={styles.servicePrice}>R$ {service.price}</Text>
+                    <View style={styles.serviceDuration}>
+                      <Clock size={14} color="#6B7280" />
+                      <Text style={styles.durationText}>{service.averageTime}</Text>
+                    </View>
+                    <Text style={styles.serviceCategory}>{service.category}</Text>
                   </View>
-                  <Text style={styles.serviceCategory}>{service.category}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         )}
 
@@ -161,6 +240,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   headerContainer: {
     height: 200,
@@ -278,6 +369,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: '#111827',
     marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 20,
   },
   serviceCard: {
     flexDirection: 'row',

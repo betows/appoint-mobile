@@ -2,12 +2,10 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CreditCard as Edit, Star, MapPin, Phone, Mail, Settings, LogOut, Bell, Shield, CircleHelp as HelpCircle, CreditCard, Users, ChevronRight, Moon, Globe } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { mockUsers } from '@/data/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function ProviderProfile() {
-  const { logout } = useAuth();
-  const provider = mockUsers.find(user => user.type === 'provider');
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     Alert.alert(
@@ -44,7 +42,7 @@ export default function ProviderProfile() {
       title: 'Notificações',
       subtitle: 'Configurar alertas e avisos',
       icon: Bell,
-      onPress: () => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento'),
+      onPress: () => router.push('/account-settings'),
     },
     {
       id: 'privacy',
@@ -100,7 +98,7 @@ export default function ProviderProfile() {
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <Image
-              source={{ uri: provider?.avatar }}
+              source={{ uri: user?.avatar || 'https://via.placeholder.com/150' }}
               style={styles.avatar}
             />
             <TouchableOpacity 
@@ -111,10 +109,10 @@ export default function ProviderProfile() {
             </TouchableOpacity>
           </View>
           
-          <Text style={styles.providerName}>{provider?.name}</Text>
+          <Text style={styles.providerName}>{user?.name}</Text>
           <View style={styles.ratingContainer}>
             <Star size={16} color="#F59E0B" fill="#F59E0B" />
-            <Text style={styles.ratingText}>{provider?.rating} • Prestador verificado</Text>
+            <Text style={styles.ratingText}>{user?.rating || 0} • Prestador verificado</Text>
           </View>
           
           <TouchableOpacity 
@@ -133,15 +131,15 @@ export default function ProviderProfile() {
           <View style={styles.infoCard}>
             <View style={styles.infoItem}>
               <Mail size={20} color="#6B7280" />
-              <Text style={styles.infoText}>{provider?.email}</Text>
+              <Text style={styles.infoText}>{user?.email}</Text>
             </View>
             <View style={styles.infoItem}>
               <Phone size={20} color="#6B7280" />
-              <Text style={styles.infoText}>{provider?.phone}</Text>
+              <Text style={styles.infoText}>{user?.phone || 'N/A'}</Text>
             </View>
             <View style={styles.infoItem}>
               <MapPin size={20} color="#6B7280" />
-              <Text style={styles.infoText}>São Paulo, SP</Text>
+              <Text style={styles.infoText}>{user?.address?.street || 'São Paulo, SP'}</Text>
             </View>
           </View>
         </View>
@@ -151,11 +149,14 @@ export default function ProviderProfile() {
           <Text style={styles.sectionTitle}>Serviços Oferecidos</Text>
           
           <View style={styles.servicesContainer}>
-            {provider?.services?.map((service, index) => (
+            {user?.services?.map((service, index) => (
               <View key={index} style={styles.serviceTag}>
                 <Text style={styles.serviceTagText}>{service}</Text>
               </View>
             ))}
+            {(!user?.services || user.services.length === 0) && (
+              <Text style={styles.infoText}>Nenhum serviço cadastrado</Text>
+            )}
           </View>
         </View>
 
@@ -165,15 +166,15 @@ export default function ProviderProfile() {
           
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>24</Text>
+              <Text style={styles.statNumber}>0</Text>
               <Text style={styles.statLabel}>Serviços Realizados</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>4.8</Text>
+              <Text style={styles.statNumber}>0</Text>
               <Text style={styles.statLabel}>Avaliação Média</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>98%</Text>
+              <Text style={styles.statNumber}>0%</Text>
               <Text style={styles.statLabel}>Taxa de Aprovação</Text>
             </View>
           </View>

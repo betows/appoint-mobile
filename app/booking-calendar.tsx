@@ -1,69 +1,167 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
+import { format, addDays, parseISO, isToday, isSameDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-const weekDays = [
-  { day: 'segunda', date: '16', isToday: false },
-  { day: 'terça', date: '17', isToday: true },
-  { day: 'quarta', date: '18', isToday: false },
-  { day: 'quinta', date: '19', isToday: false },
-  { day: 'sexta', date: '20', isToday: false },
-  { day: 'sábado', date: '21', isToday: false },
-];
+const API_URL = 'http://localhost:5000/api/v1';
 
-const timeSlots = [
-  { time: '13:00', available: true },
-  { time: '13:30', available: true },
-  { time: '14:00', available: true },
-  { time: '14:30', available: true },
-  { time: '15:00', available: true },
-  { time: '15:30', available: true },
-];
+interface TimeSlot {
+  hour: string;
+  date: string;
+}
 
-const periods = [
-  { name: 'Manhã', active: false },
-  { name: 'Tarde', active: true },
-  { name: 'Noite', active: false },
-];
+interface DayData {
+  day: string;
+  date: string;
+  fullDate: Date;
+  isToday: boolean;
+}
 
 export default function BookingCalendar() {
-  const { serviceId, appointmentId, reschedule } = useLocalSearchParams<{ 
-    serviceId?: string; 
+  const { serviceId, providerId, appointmentId, reschedule } = useLocalSearchParams<{ 
+    serviceId: string; 
+    providerId: string; 
     appointmentId?: string; 
     reschedule?: string; 
   }>();
   
-  const [selectedDay, setSelectedDay] = useState('17');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [selectedPeriod, setSelectedPeriod] = useState('Tarde');
+  const { user } = useAuth();
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
+  const [weekDays, setWeekDays] = useState<DayData[]>([]);
+  const [selectedDay, setSelectedDay] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [loading, setLoading] = useState(true);
 
   const isRescheduling = reschedule === 'true';
 
-  const handleConfirmBooking = () => {
-    if (!selectedTime) {
-      Alert.alert('Erro', 'Por favor, selecione um horário.');
+  const generateWeekDays = useCallback(() => {
+    const days: DayData[] = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const date = addDays(today, i);
+      days.push({
+        day: format(date, 'EEEE', { locale: ptBR }),
+        date: format(date, 'dd'),
+        fullDate: date,
+        isToday: isToday(date),
+      });
+    }
+    setWeekDays(days);
+    setSelectedDay(format(today, 'dd')); // Select today by default
+  }, []);
+
+  const fetchAvailableHours = useCallback(async () => {
+    if (!providerId || !user?.token) return;
+    setLoading(true);
+    try {
+      const startDate = format(new Date(), 'yyyy-MM-dd');
+      const endDate = format(addDays(new Date(), 6), 'yyyy-MM-dd'); // Fetch for 7 days
+
+      const response = await fetch(`${API_URL}/marketplace/services/${providerId}/available?startDate=${startDate}&endDate=${endDate}`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch available hours');
+      }
+      setAvailableTimeSlots(data);
+    } catch (error) {
+      console.error('Failed to fetch available hours:', error);
+      Alert.alert('Erro', 'Falha ao carregar horários disponíveis.');
+    } finally {
+      setLoading(false);
+    }
+  }, [providerId, user?.token]);
+
+  useEffect(() => {
+    generateWeekDays();
+    fetchAvailableHours();
+  }, [generateWeekDays, fetchAvailableHours]);
+
+  const handleConfirmBooking = async () => {
+    if (!selectedTime || !selectedDay || !serviceId || !user?.token) {
+      Alert.alert('Erro', 'Por favor, selecione um dia e horário.');
       return;
     }
 
-    const message = isRescheduling 
-      ? 'Agendamento reagendado com sucesso!'
-      : 'Agendamento confirmado com sucesso!';
+    const selectedFullDate = weekDays.find(day => day.date === selectedDay)?.fullDate;
+    if (!selectedFullDate) {
+      Alert.alert('Erro', 'Data selecionada inválida.');
+      return;
+    }
 
-    Alert.alert(
-      'Sucesso',
-      message,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            router.back();
+    const [hour, minute] = selectedTime.split(':').map(Number);
+    const appointmentDateTime = new Date(selectedFullDate);
+    appointmentDateTime.setHours(hour, minute, 0, 0);
+
+    try {
+      // Assuming you have a way to get the cardId, for now, it's hardcoded or fetched elsewhere
+      const cardId = "your_customer_card_id"; // Replace with actual card ID
+
+      const bookingPayload = {
+        serviceId,
+        cardId,
+        scheduledAt: appointmentDateTime.toISOString(),
+        // Add other necessary fields like providerId if needed by the backend
+      };
+
+      const response = await fetch(`${API_URL}/payments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`,
+        },
+        body: JSON.stringify(bookingPayload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Booking failed');
+      }
+
+      const message = isRescheduling 
+        ? 'Agendamento reagendado com sucesso!'
+        : 'Agendamento confirmado com sucesso!';
+
+      Alert.alert(
+        'Sucesso',
+        message,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              router.back();
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    } catch (error) {
+      console.error('Booking error:', error);
+      Alert.alert('Erro', 'Falha ao confirmar agendamento. Tente novamente.');
+    }
   };
+
+  const filteredTimeSlots = availableTimeSlots.filter(slot => {
+    const slotDate = parseISO(slot.date);
+    const selectedDate = weekDays.find(day => day.date === selectedDay)?.fullDate;
+    return selectedDate && isSameDay(slotDate, selectedDate);
+  });
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingText}>Carregando horários...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -111,7 +209,7 @@ export default function BookingCalendar() {
                       selectedDay === day.date && styles.selectedDayText,
                     ]}
                   >
-                    {day.day}
+                    {day.day.substring(0, 3)}.
                   </Text>
                   <Text
                     style={[
@@ -128,54 +226,33 @@ export default function BookingCalendar() {
           </ScrollView>
         </View>
 
-        {/* Period Selection */}
-        <View style={styles.periodSection}>
-          <View style={styles.periodContainer}>
-            {periods.map((period) => (
-              <TouchableOpacity
-                key={period.name}
-                style={[
-                  styles.periodButton,
-                  selectedPeriod === period.name && styles.activePeriodButton,
-                ]}
-                onPress={() => setSelectedPeriod(period.name)}
-              >
-                <Text
-                  style={[
-                    styles.periodText,
-                    selectedPeriod === period.name && styles.activePeriodText,
-                  ]}
-                >
-                  {period.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
         {/* Available Times */}
         <View style={styles.timesSection}>
           <Text style={styles.sectionTitle}>Horários Disponíveis</Text>
           <View style={styles.timesGrid}>
-            {timeSlots.map((slot) => (
-              <TouchableOpacity
-                key={slot.time}
-                style={[
-                  styles.timeSlot,
-                  selectedTime === slot.time && styles.selectedTimeSlot,
-                ]}
-                onPress={() => setSelectedTime(slot.time)}
-              >
-                <Text
+            {filteredTimeSlots.length === 0 ? (
+              <Text style={styles.emptyText}>Nenhum horário disponível para este dia.</Text>
+            ) : (
+              filteredTimeSlots.map((slot) => (
+                <TouchableOpacity
+                  key={slot.hour}
                   style={[
-                    styles.timeText,
-                    selectedTime === slot.time && styles.selectedTimeText,
+                    styles.timeSlot,
+                    selectedTime === slot.hour && styles.selectedTimeSlot,
                   ]}
+                  onPress={() => setSelectedTime(slot.hour)}
                 >
-                  {slot.time}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.timeText,
+                      selectedTime === slot.hour && styles.selectedTimeText,
+                    ]}
+                  >
+                    {slot.hour}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </View>
       </ScrollView>
@@ -201,6 +278,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   header: {
     flexDirection: 'row',
@@ -362,5 +451,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 20,
+    width: '100%',
   },
 });

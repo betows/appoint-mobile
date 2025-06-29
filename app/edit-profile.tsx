@@ -49,9 +49,9 @@ export default function EditProfile() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) return;
-    
+
     Alert.alert(
       'Salvar Alterações',
       'Deseja salvar as alterações no perfil?',
@@ -59,18 +59,38 @@ export default function EditProfile() {
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Salvar',
-          onPress: () => {
-            // Aqui você salvaria os dados no backend
-            Alert.alert(
-              'Sucesso',
-              'Perfil atualizado com sucesso!',
-              [
-                {
-                  text: 'OK',
-                  onPress: () => router.back()
-                }
-              ]
-            );
+          onPress: async () => {
+            try {
+              const userDataToUpdate: Partial<User> = {
+                name: name,
+                email: email,
+                phone: phone,
+                address: { street: address }, // Simplified for now
+              };
+
+              if (user?.type === 'provider') {
+                // These fields are not directly in the backend's UpdateUserRequestSchema
+                // They might require a separate endpoint or a different structure.
+                // For now, they are not sent to the backend via updateUser.
+                // userDataToUpdate.description = description;
+                // userDataToUpdate.services = services.split(', ').map(s => s.trim());
+              }
+
+              await updateUser(userDataToUpdate);
+              Alert.alert(
+                'Sucesso',
+                'Perfil atualizado com sucesso!',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => router.back()
+                  }
+                ]
+              );
+            } catch (error) {
+              console.error('Failed to update profile:', error);
+              Alert.alert('Erro', 'Falha ao atualizar perfil. Tente novamente.');
+            }
           }
         }
       ]

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type UserType = 'customer' | 'provider';
 
@@ -12,6 +13,7 @@ export interface User {
   rating?: number;
   services?: string[];
   categories?: string[];
+  token: string; // Add token to User interface
 }
 
 interface AuthContextType {
@@ -20,105 +22,208 @@ interface AuthContextType {
   register: (name: string, email: string, password: string, userType: UserType) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  refreshUser: () => Promise<void>;
+  updateUser: (userData: Partial<User>) => Promise<void>;
+  updateUserPassword: (oldPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const API_URL = 'http://localhost:5000/api/v1'; // Backend API URL
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate checking for stored auth token
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
+    const loadUser = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error('Failed to load user from storage', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadUser();
   }, []);
 
   const login = async (email: string, password: string, userType: UserType) => {
     setIsLoading(true);
-    
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Check for specific test credentials
-      if (email === 'provider@example.com' && password === 'provider') {
-        const mockUser: User = {
-          id: 'provider-1',
-          name: 'Encanadores Rápidos',
-          email,
-          type: 'provider',
-          avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-          phone: '+55 (11) 99999-9999',
-          rating: 4.8,
-          services: ['Encanamento', 'Reparo Hidráulico'],
-          categories: ['Encanador'],
-        };
-        
-        setUser(mockUser);
-        setIsLoading(false);
-        return;
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
       }
-      
-      if (email === 'customer@example.com' && password === 'customer') {
-        const mockUser: User = {
-          id: 'customer-1',
-          name: 'João Silva',
-          email,
-          type: 'customer',
-          avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
-          phone: '+55 (11) 88888-8888',
-        };
-        
-        setUser(mockUser);
-        setIsLoading(false);
-        return;
-      }
-      
-      // For any other credentials, simulate a failed login
-      setIsLoading(false);
-      throw new Error('Invalid credentials');
-      
+
+      const loggedInUser: User = {
+        id: data.id, // Assuming backend returns user id
+        name: data.name, // Assuming backend returns user name
+        email,
+        type: userType,
+        token: data.token,
+        // You might need to fetch more user details after login if not returned directly
+      };
+      setUser(loggedInUser);
+      await AsyncStorage.setItem('user', JSON.stringify(loggedInUser));
     } catch (error) {
-      setIsLoading(false);
+      console.error('Login error:', error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const register = async (name: string, email: string, password: string, userType: UserType) => {
     setIsLoading(true);
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          role: userType.toUpperCase(), // Backend expects 'CUSTOMER' or 'PROVIDER'
+          address: { // Placeholder address, adjust as per backend requirements
+            street: 'Some Street',
+            number: '123',
+            zipCode: '12345-678',
+            city: 'Some City',
+            state: 'Some State',
+            neighborhood: 'Some Neighborhood',
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      const registeredUser: User = {
+        id: data.id, // Assuming backend returns user id
         name,
         email,
         type: userType,
-        avatar: `https://images.pexels.com/photos/${userType === 'customer' ? '220453' : '2379004'}/pexels-photo-${userType === 'customer' ? '220453' : '2379004'}.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2`,
-        phone: '+55 (11) 99999-9999',
-        rating: userType === 'provider' ? 0 : undefined,
-        services: userType === 'provider' ? [] : undefined,
-        categories: userType === 'provider' ? [] : undefined,
+        token: data.token,
+        // You might need to fetch more user details after registration
       };
-      
-      setUser(mockUser);
-      setIsLoading(false);
+      setUser(registeredUser);
+      await AsyncStorage.setItem('user', JSON.stringify(registeredUser));
     } catch (error) {
-      setIsLoading(false);
+      console.error('Registration error:', error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
+  const refreshUser = async () => {
+    if (!user || !user.token) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/user`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to refresh user data');
+      }
+      const refreshedUser = { ...user, ...data };
+      setUser(refreshedUser);
+      await AsyncStorage.setItem('user', JSON.stringify(refreshedUser));
+    } catch (error) {
+      console.error('Refresh user error:', error);
+      // Optionally logout if token is invalid
+      logout();
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateUser = async (userData: Partial<User>) => {
+    if (!user || !user.token) throw new Error('User not authenticated');
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/user`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`,
+        },
+        body: JSON.stringify(userData),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update user');
+      }
+      const updatedUser = { ...user, ...data };
+      setUser(updatedUser);
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Update user error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateUserPassword = async (oldPassword: string, newPassword: string) => {
+    if (!user || !user.token) throw new Error('User not authenticated');
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/user/update-password`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update password');
+      }
+      // Password updated successfully, no need to update user state with password
+    } catch (error) {
+      console.error('Update password error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem('user');
+      setUser(null);
+    } catch (error) {
+      console.error('Failed to remove user from storage', error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading, refreshUser, updateUser, updateUserPassword }}>
       {children}
     </AuthContext.Provider>
   );

@@ -44,17 +44,7 @@ export default function Login() {
     }
   };
 
-  const fillTestCredentials = () => {
-    if (userType === 'customer') {
-      setEmail('customer@example.com');
-      setPassword('customer');
-    } else {
-      setEmail('provider@example.com');
-      setPassword('provider');
-    }
-    // Clear any existing errors
-    setErrors({});
-  };
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -81,15 +71,7 @@ export default function Login() {
               Entre na sua conta para continuar
             </Text>
 
-            {/* Test Credentials Button */}
-            <TouchableOpacity
-              style={styles.testButton}
-              onPress={fillTestCredentials}
-            >
-              <Text style={styles.testButtonText}>
-                🧪 Usar credenciais de teste ({userType === 'customer' ? 'Cliente' : 'Prestador'})
-              </Text>
-            </TouchableOpacity>
+            
 
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
@@ -163,18 +145,7 @@ export default function Login() {
               </TouchableOpacity>
             </View>
 
-            {/* Debug Info */}
-            <View style={styles.debugInfo}>
-              <Text style={styles.debugText}>
-                Credenciais de teste:
-              </Text>
-              <Text style={styles.debugText}>
-                Cliente: customer@example.com / customer
-              </Text>
-              <Text style={styles.debugText}>
-                Prestador: provider@example.com / provider
-              </Text>
-            </View>
+            
           </View>
         </View>
       </LinearGradient>

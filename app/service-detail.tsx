@@ -1,20 +1,106 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Clock, Star } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { mockServices, mockProfessionals } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+
+const API_URL = 'http://localhost:5000/api/v1';
+
+interface Service {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  averageTime: string; // Assuming duration is a string like "1h 30min"
+  image: string;
+  category: { name: string };
+}
+
+interface Provider {
+  id: string;
+  legalName: string;
+  image: string;
+  rating: number;
+  ratingCount: number;
+}
 
 export default function ServiceDetail() {
   const { serviceId } = useLocalSearchParams<{ serviceId: string }>();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('Descrição');
-  
-  const service = mockServices.find(s => s.id === serviceId) || mockServices[0];
-  const provider = mockProfessionals.find(p => p.id === service.providerId);
+  const [service, setService] = useState<Service | null>(null);
+  const [provider, setProvider] = useState<Provider | null>(null);
+  const [relatedServices, setRelatedServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const relatedServices = mockServices.filter(s => 
-    s.providerId === service.providerId && s.id !== service.id
-  );
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!serviceId || !user?.token) return;
+      setLoading(true);
+      try {
+        // Fetch service details
+        const serviceResponse = await fetch(`${API_URL}/marketplace/services/${serviceId}`, {
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+          },
+        });
+        const serviceData = await serviceResponse.json();
+        if (!serviceResponse.ok) {
+          throw new Error(serviceData.message || 'Failed to fetch service');
+        }
+        setService(serviceData);
+
+        // Fetch provider details
+        const providerResponse = await fetch(`${API_URL}/marketplace/providers/${serviceData.providerId}`, {
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+          },
+        });
+        const providerData = await providerResponse.json();
+        if (!providerResponse.ok) {
+          throw new Error(providerData.message || 'Failed to fetch provider');
+        }
+        setProvider(providerData);
+
+        // Fetch related services
+        const relatedServicesResponse = await fetch(`${API_URL}/marketplace/providers/${serviceData.providerId}/services`, {
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+          },
+        });
+        const relatedServicesData = await relatedServicesResponse.json();
+        if (!relatedServicesResponse.ok) {
+          throw new Error(relatedServicesData.message || 'Failed to fetch related services');
+        }
+        setRelatedServices(relatedServicesData.services.filter((s: Service) => s.id !== serviceId));
+
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        Alert.alert('Erro', 'Falha ao carregar detalhes do serviço.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [serviceId, user?.token]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingText}>Carregando serviço...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!service || !provider) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Serviço ou prestador não encontrado.</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -22,7 +108,7 @@ export default function ServiceDetail() {
         {/* Header with service image */}
         <View style={styles.headerContainer}>
           <Image
-            source={{ uri: service.image }}
+            source={{ uri: service.image || 'https://via.placeholder.com/400x250' }}
             style={styles.serviceImage}
           />
           <View style={styles.headerOverlay}>
@@ -34,27 +120,27 @@ export default function ServiceDetail() {
             </TouchableOpacity>
           </View>
           <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{service.category}</Text>
+            <Text style={styles.categoryText}>{service.category.name}</Text>
           </View>
         </View>
 
         {/* Service Info */}
         <View style={styles.serviceSection}>
-          <Text style={styles.serviceName}>{service.name}</Text>
-          <Text style={styles.serviceDuration}>Tempo: {service.duration}</Text>
+          <Text style={styles.serviceName}>{service.title}</Text>
+          <Text style={styles.serviceDuration}>Tempo: {service.averageTime}</Text>
           <Text style={styles.servicePrice}>Preço: R$ {service.price}</Text>
           <TouchableOpacity 
             onPress={() => router.push({
               pathname: '/professional-detail',
-              params: { professionalId: service.providerId }
+              params: { professionalId: provider.id }
             })}
           >
-            <Text style={styles.serviceProvider}>Prestador: {provider?.name}</Text>
+            <Text style={styles.serviceProvider}>Prestador: {provider.legalName}</Text>
           </TouchableOpacity>
           <View style={styles.ratingContainer}>
             <Text style={styles.ratingLabel}>Avaliações: </Text>
             <Star size={16} color="#F59E0B" fill="#F59E0B" />
-            <Text style={styles.ratingText}>{service.rating} ({service.reviews} avaliações)</Text>
+            <Text style={styles.ratingText}>{provider.rating} ({provider.ratingCount} avaliações)</Text>
           </View>
         </View>
 
@@ -139,13 +225,13 @@ export default function ServiceDetail() {
                 })}
               >
                 <Image
-                  source={{ uri: relatedService.image }}
+                  source={{ uri: relatedService.image || 'https://via.placeholder.com/60' }}
                   style={styles.relatedServiceImage}
                 />
                 <View style={styles.relatedServiceInfo}>
-                  <Text style={styles.relatedServiceName}>{relatedService.name}</Text>
+                  <Text style={styles.relatedServiceName}>{relatedService.title}</Text>
                   <Text style={styles.relatedServicePrice}>R$ {relatedService.price}</Text>
-                  <Text style={styles.relatedServiceDuration}>{relatedService.duration}</Text>
+                  <Text style={styles.relatedServiceDuration}>{relatedService.averageTime}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -159,7 +245,7 @@ export default function ServiceDetail() {
           style={styles.bookButton}
           onPress={() => router.push({
             pathname: '/booking-calendar',
-            params: { serviceId: service.id }
+            params: { serviceId: service.id, providerId: provider.id }
           })}
         >
           <Text style={styles.bookButtonText}>Agendar Serviço</Text>
@@ -173,6 +259,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   headerContainer: {
     height: 250,

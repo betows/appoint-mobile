@@ -2,12 +2,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CreditCard as Edit, Star, MapPin, Phone, Mail, Settings, LogOut } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { mockUsers } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CustomerProfile() {
-  const customer = mockUsers.find(user => user.type === 'customer');
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
+    logout();
     router.replace('/auth');
   };
 
@@ -18,7 +19,7 @@ export default function CustomerProfile() {
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <Image
-              source={{ uri: customer?.avatar }}
+              source={{ uri: user?.avatar || 'https://via.placeholder.com/150' }}
               style={styles.avatar}
             />
             <TouchableOpacity style={styles.editAvatarButton}>
@@ -26,8 +27,8 @@ export default function CustomerProfile() {
             </TouchableOpacity>
           </View>
           
-          <Text style={styles.customerName}>{customer?.name}</Text>
-          <Text style={styles.customerEmail}>{customer?.email}</Text>
+          <Text style={styles.customerName}>{user?.name}</Text>
+          <Text style={styles.customerEmail}>{user?.email}</Text>
         </View>
 
         {/* Contact Info */}
@@ -37,15 +38,15 @@ export default function CustomerProfile() {
           <View style={styles.infoCard}>
             <View style={styles.infoItem}>
               <Mail size={20} color="#6B7280" />
-              <Text style={styles.infoText}>{customer?.email}</Text>
+              <Text style={styles.infoText}>{user?.email}</Text>
             </View>
             <View style={styles.infoItem}>
               <Phone size={20} color="#6B7280" />
-              <Text style={styles.infoText}>{customer?.phone}</Text>
+              <Text style={styles.infoText}>{user?.phone || 'N/A'}</Text>
             </View>
             <View style={styles.infoItem}>
               <MapPin size={20} color="#6B7280" />
-              <Text style={styles.infoText}>São Paulo, SP</Text>
+              <Text style={styles.infoText}>{user?.address?.street || 'São Paulo, SP'}</Text>
             </View>
           </View>
         </View>
@@ -56,15 +57,15 @@ export default function CustomerProfile() {
           
           <View style={styles.statsContainer}>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>12</Text>
+              <Text style={styles.statNumber}>0</Text>
               <Text style={styles.statLabel}>Serviços Contratados</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>4.9</Text>
+              <Text style={styles.statNumber}>0</Text>
               <Text style={styles.statLabel}>Avaliação Média</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statNumber}>R$ 1.240</Text>
+              <Text style={styles.statNumber}>R$ 0</Text>
               <Text style={styles.statLabel}>Total Investido</Text>
             </View>
           </View>
@@ -75,15 +76,14 @@ export default function CustomerProfile() {
           <Text style={styles.sectionTitle}>Categorias Favoritas</Text>
           
           <View style={styles.categoriesContainer}>
-            <View style={styles.categoryTag}>
-              <Text style={styles.categoryTagText}>🧹 Faxina</Text>
-            </View>
-            <View style={styles.categoryTag}>
-              <Text style={styles.categoryTagText}>⚡ Eletricista</Text>
-            </View>
-            <View style={styles.categoryTag}>
-              <Text style={styles.categoryTagText}>🔧 Encanador</Text>
-            </View>
+            {user?.categories?.map((category, index) => (
+              <View key={index} style={styles.categoryTag}>
+                <Text style={styles.categoryTagText}>{category}</Text>
+              </View>
+            ))}
+            {(!user?.categories || user.categories.length === 0) && (
+              <Text style={styles.infoText}>Nenhuma categoria favorita</Text>
+            )}
           </View>
         </View>
 
@@ -92,12 +92,12 @@ export default function CustomerProfile() {
           <Text style={styles.sectionTitle}>Configurações</Text>
           
           <View style={styles.settingsContainer}>
-            <TouchableOpacity style={styles.settingItem}>
+            <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/account-settings')}>
               <Settings size={20} color="#6B7280" />
               <Text style={styles.settingText}>Configurações da Conta</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.settingItem}>
+            <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/edit-profile')}>
               <Edit size={20} color="#6B7280" />
               <Text style={styles.settingText}>Editar Perfil</Text>
             </TouchableOpacity>

@@ -1,26 +1,74 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, CreditCard as Edit, Trash2, Clock, DollarSign } from 'lucide-react-native';
-import { mockServices } from '@/data/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface Service {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: string; // Assuming duration is a string like "1h 30min"
+  rating: number;
+  reviews: number;
+  category: string;
+  image: string;
+}
+
+const API_URL = 'http://localhost:5000/api/v1';
 
 export default function ProviderServices() {
-  const [services, setServices] = useState(mockServices.filter(service => service.providerId === 'provider-1'));
+  const { user, isLoading: authLoading, refreshUser } = useAuth();
+  const [services, setServices] = useState<Service[]>([]);
+  const [loadingServices, setLoadingServices] = useState(true);
+
+  const fetchServices = useCallback(async () => {
+    if (!user?.token || !user?.id) {
+      setLoadingServices(false);
+      return;
+    }
+    setLoadingServices(true);
+    try {
+      const response = await fetch(`${API_URL}/marketplace/providers/${user.id}/services`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch services');
+      }
+      // Backend returns an object with a 'services' array
+      setServices(data.services || []);
+    } catch (error) {
+      console.error('Failed to fetch services:', error);
+      Alert.alert('Erro', 'Falha ao carregar serviços. Tente novamente.');
+    } finally {
+      setLoadingServices(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
 
   const handleAddService = () => {
     Alert.alert(
       'Adicionar Serviço',
-      'Funcionalidade de adicionar serviço será implementada em breve.',
+      'Funcionalidade de adicionar serviço será implementada em breve no backend.',
       [{ text: 'OK' }]
     );
+    // TODO: Implement backend call for adding a service
   };
 
   const handleEditService = (serviceId: string) => {
     Alert.alert(
       'Editar Serviço',
-      'Funcionalidade de editar serviço será implementada em breve.',
+      'Funcionalidade de editar serviço será implementada em breve no backend.',
       [{ text: 'OK' }]
     );
+    // TODO: Implement backend call for editing a service
   };
 
   const handleDeleteService = (serviceId: string) => {
@@ -33,13 +81,23 @@ export default function ProviderServices() {
           text: 'Excluir',
           style: 'destructive',
           onPress: () => {
+            // TODO: Implement backend call for deleting a service
             setServices(prev => prev.filter(service => service.id !== serviceId));
-            Alert.alert('Sucesso', 'Serviço excluído com sucesso!');
+            Alert.alert('Sucesso', 'Serviço excluído com sucesso (simulado)!');
           }
         }
       ]
     );
   };
+
+  if (authLoading || loadingServices) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingText}>Carregando serviços...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -67,7 +125,7 @@ export default function ProviderServices() {
           services.map((service) => (
             <View key={service.id} style={styles.serviceCard}>
               <Image
-                source={{ uri: service.image }}
+                source={{ uri: service.image || 'https://via.placeholder.com/150' }}
                 style={styles.serviceImage}
               />
               <View style={styles.serviceInfo}>
@@ -121,6 +179,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   header: {
     flexDirection: 'row',
@@ -225,7 +295,7 @@ const styles = StyleSheet.create({
   serviceActions: {
     flexDirection: 'row',
     gap: 8,
-  },
+},
   actionButton: {
     padding: 6,
     borderRadius: 6,
