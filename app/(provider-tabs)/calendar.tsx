@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, ArrowRight, Bell, X, Clock, Ban, CheckCircle, Settings } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Bell, X, Clock, Ban, CircleCheck as CheckCircle, Settings } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
