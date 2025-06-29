@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bell, TrendingUp, TrendingDown, DollarSign, Star, Users, Calendar, MessageCircle } from 'lucide-react-native';
+import { Bell, TrendingUp, TrendingDown, DollarSign, Star, Users, Calendar, MessageCircle, Wrench } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { mockUsers, mockAppointments, mockProviderChats } from '@/data/mockData';
 
