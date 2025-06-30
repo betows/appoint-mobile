@@ -5,8 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Search, Bell, Star, ChevronRight } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-
-const API_URL = 'http://localhost:5000/api/v1';
+import api from '@/services/api';
 
 interface Service {
   id: string;
@@ -17,8 +16,8 @@ interface Service {
   image: string;
   category: { name: string };
   provider: { id: string; legalName: string };
-  rating: number; // Assuming rating is available
-  reviews: number; // Assuming reviews count is available
+  rating: number;
+  reviews: number;
 }
 
 interface Professional {
@@ -36,7 +35,7 @@ interface Professional {
 interface Category {
   id: string;
   name: string;
-  icon: string; // Assuming icon is a string (e.g., emoji or URL)
+  icon: string;
 }
 
 export default function CustomerHome() {
@@ -52,16 +51,8 @@ export default function CustomerHome() {
   const fetchCategories = useCallback(async () => {
     if (!user?.token) return;
     try {
-      const response = await fetch(`${API_URL}/marketplace/categories`, {
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch categories');
-      }
-      setCategories(data.map((cat: any) => ({ ...cat, icon: cat.name.substring(0,1).toUpperCase() }))); // Placeholder for icon
+      const data = await api.get('/marketplace/categories', user.token);
+      setCategories(data.map((cat: any) => ({ ...cat, icon: cat.name.substring(0,1).toUpperCase() })));
     } catch (error) {
       console.error('Failed to fetch categories:', error);
       Alert.alert('Erro', 'Falha ao carregar categorias.');
@@ -72,15 +63,7 @@ export default function CustomerHome() {
     if (!user?.token) return;
     try {
       const query = category ? `?category=${category}` : '';
-      const response = await fetch(`${API_URL}/marketplace/services${query}`, {
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch services');
-      }
+      const data = await api.get(`/marketplace/services${query}`, user.token);
       const mappedServices = data.map((s: any) => ({
         id: s.id,
         title: s.title,
@@ -90,14 +73,11 @@ export default function CustomerHome() {
         image: s.image || 'https://via.placeholder.com/100',
         category: s.category,
         provider: s.provider,
-        rating: s.rating || 0, // Assuming rating comes from backend
-        reviews: s.reviews || 0, // Assuming reviews comes from backend
+        rating: s.rating || 0,
+        reviews: s.reviews || 0,
       }));
-
-      // Client-side sorting for now
       setTopServices([...mappedServices].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 6));
       setLowPriceServices([...mappedServices].sort((a, b) => a.price - b.price));
-
     } catch (error) {
       console.error('Failed to fetch services:', error);
       Alert.alert('Erro', 'Falha ao carregar serviços.');
@@ -108,15 +88,7 @@ export default function CustomerHome() {
     if (!user?.token) return;
     try {
       const query = category ? `?category=${category}` : '';
-      const response = await fetch(`${API_URL}/marketplace/providers${query}`, {
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch professionals');
-      }
+      const data = await api.get(`/marketplace/providers${query}`, user.token);
       setTopProfessionals(data.result.sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0)).slice(0, 4));
     } catch (error) {
       console.error('Failed to fetch professionals:', error);

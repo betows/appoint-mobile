@@ -18,7 +18,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, userType: UserType) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, userType: UserType) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
@@ -29,8 +29,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = 'http://localhost:5000/api/v1'; // Backend API URL
-
+/* const API_URL = 'http://192.168.125.12:5000/api/v1'; */
+const API_URL = 'http://localhost:5000/api/v1'
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,9 +49,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
     loadUser();
-  }, []);
+  }, [user]);
 
-  const login = async (email: string, password: string, userType: UserType) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
@@ -69,12 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const loggedInUser: User = {
-        id: data.id, // Assuming backend returns user id
-        name: data.name, // Assuming backend returns user name
+        id: data.id,
+        name: data.name,
         email,
-        type: userType,
+        type: data.role.toLowerCase(), // Set user type from backend response
         token: data.token,
-        // You might need to fetch more user details after login if not returned directly
       };
       setUser(loggedInUser);
       await AsyncStorage.setItem('user', JSON.stringify(loggedInUser));
