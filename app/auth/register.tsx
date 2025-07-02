@@ -56,7 +56,7 @@ export default function Register() {
     
     try {
       await register(name, email, password, userType);
-    } catch (error) {
+    } catch {
       Alert.alert('Registration Failed', 'Please try again later.');
     }
   };

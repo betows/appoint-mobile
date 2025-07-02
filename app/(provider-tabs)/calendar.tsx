@@ -54,7 +54,7 @@ const timeSlots = [
 
 export default function ProviderCalendar() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [currentMonth, setCurrentMonth] = useState('junho 2025');
+  const [currentMonth] = useState('junho 2025');
   const [dayStatus, setDayStatus] = useState(initialDayStatus);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [workingHoursModal, setWorkingHoursModal] = useState(false);

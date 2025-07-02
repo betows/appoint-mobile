@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
+import NotificationsModal from '@/components/NotificationsModal';
 import { router, Slot } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 
@@ -14,10 +16,15 @@ function RootLayoutNav() {
         } else if (user.type === 'provider') {
           router.replace('/(provider-tabs)');
         } else {
+          // Fallback for unknown user types or initial load
           router.replace('/');
         }
       } else {
-        router.replace('/');
+        // User is not logged in
+        const currentPath = router.pathname;
+        if (currentPath && !currentPath.startsWith('/auth')) {
+          router.replace('/auth/login');
+        }
       }
     }
   }, [user, isLoading]);
@@ -35,8 +42,11 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <NotificationProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+        <NotificationsModal />
+      </AuthProvider>
+    </NotificationProvider>
   );
 }

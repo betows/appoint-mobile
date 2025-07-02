@@ -361,7 +361,7 @@ export default function ProviderDashboard() {
               />
               <View style={styles.appointmentContent}>
                 <View style={styles.appointmentHeader}>
-                  <Text style={styles.serviceName}>{appointment.service}</Text>
+                  <Text style={styles.appointmentServiceName}>{appointment.service}</Text>
                   <View
                     style={[
                       styles.statusBadge,
@@ -540,7 +540,7 @@ export default function ProviderDashboard() {
                   style={styles.avatar}
                 />
                 <View style={styles.profileInfo}>
-                  <Text style={styles.serviceName}>{provider?.name}</Text>
+                  <Text style={styles.profileServiceName}>{provider?.name}</Text>
                   <Text style={styles.email}>{provider?.email}</Text>
                 </View>
               </View>
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
   profileInfo: {
     flex: 1,
   },
-  serviceName: {
+  profileServiceName: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
@@ -772,10 +772,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
     elevation: 2,
   },
   statHeader: {
@@ -950,10 +947,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
     elevation: 2,
     borderWidth: 1,
     borderColor: '#F3F4F6',
@@ -972,7 +966,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  serviceName: {
+  appointmentServiceName: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#111827',
@@ -1090,10 +1084,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
     elevation: 2,
     borderWidth: 1,
     borderColor: '#F3F4F6',

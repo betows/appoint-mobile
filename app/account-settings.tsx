@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Bell, Shield, Eye, Trash2, Download } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { useAuth, User } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AccountSettings() {
-  const { user, updateUser, refreshUser } = useAuth();
+  const { user, updateUser } = useAuth();
 
   const [notifications, setNotifications] = useState({
     push: false,

@@ -6,8 +6,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, addDays, parseISO, isToday, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import api from '@/services/api';
 
-const API_URL = 'http://localhost:5000/api/v1';
+
 
 interface TimeSlot {
   hour: string;
@@ -16,13 +17,13 @@ interface TimeSlot {
 
 interface DayData {
   day: string;
-  date: string;
+  date: string; // yyyy-MM-dd format
   fullDate: Date;
   isToday: boolean;
 }
 
 export default function BookingCalendar() {
-  const { serviceId, providerId, appointmentId, reschedule } = useLocalSearchParams<{ 
+  const { serviceId, providerId, reschedule } = useLocalSearchParams<{ 
     serviceId: string; 
     providerId: string; 
     appointmentId?: string; 
@@ -45,36 +46,36 @@ export default function BookingCalendar() {
       const date = addDays(today, i);
       days.push({
         day: format(date, 'EEEE', { locale: ptBR }),
-        date: format(date, 'dd'),
+        date: format(date, 'yyyy-MM-dd'),
         fullDate: date,
         isToday: isToday(date),
       });
     }
     setWeekDays(days);
-    setSelectedDay(format(today, 'dd')); // Select today by default
+    setSelectedDay(format(today, 'yyyy-MM-dd')); // Select today by default
   }, []);
 
   const fetchAvailableHours = useCallback(async () => {
-    if (!providerId || !user?.token) return;
+    if (!providerId || !user?.token) {
+      console.log('Skipping fetchAvailableHours: providerId or user.token missing');
+      setLoading(false);
+      return;
+    }
+    console.log('Fetching available hours...');
     setLoading(true);
     try {
       const startDate = format(new Date(), 'yyyy-MM-dd');
       const endDate = format(addDays(new Date(), 6), 'yyyy-MM-dd'); // Fetch for 7 days
 
-      const response = await fetch(`${API_URL}/marketplace/services/${providerId}/available?startDate=${startDate}&endDate=${endDate}`, {
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch available hours');
-      }
+      console.log(`API Call: /marketplace/services/${providerId}/available?startDate=${startDate}&endDate=${endDate}`);
+      const data = await api.get<TimeSlot[]>(`/marketplace/services/${providerId}/available?startDate=${startDate}&endDate=${endDate}`, user.token);
+      console.log('Available hours fetched successfully:', data);
       setAvailableTimeSlots(data);
     } catch (error) {
       console.error('Failed to fetch available hours:', error);
       Alert.alert('Erro', 'Falha ao carregar horários disponíveis.');
     } finally {
+      console.log('Finished fetching available hours.');
       setLoading(false);
     }
   }, [providerId, user?.token]);
@@ -111,20 +112,7 @@ export default function BookingCalendar() {
         // Add other necessary fields like providerId if needed by the backend
       };
 
-      const response = await fetch(`${API_URL}/payments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`,
-        },
-        body: JSON.stringify(bookingPayload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Booking failed');
-      }
+      await api.post('/payments', bookingPayload, user.token);
 
       const message = isRescheduling 
         ? 'Agendamento reagendado com sucesso!'
@@ -149,9 +137,7 @@ export default function BookingCalendar() {
   };
 
   const filteredTimeSlots = availableTimeSlots.filter(slot => {
-    const slotDate = parseISO(slot.date);
-    const selectedDate = weekDays.find(day => day.date === selectedDay)?.fullDate;
-    return selectedDate && isSameDay(slotDate, selectedDate);
+    return slot.date === selectedDay;
   });
 
   if (loading) {
@@ -357,7 +343,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#6B7280',
-    marginBottom: 4,
   },
   todayText: {
     color: '#FFFFFF',

@@ -1,12 +1,87 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
-import { mockAppointments } from '@/data/mockData';
 import { router } from 'expo-router';
+import ReviewModal from '@/components/ReviewModal';
+import api from '@/services/api'; // New import
+import { useAuth } from '@/contexts/AuthContext'; // New import
+
+interface Appointment {
+  id: string;
+  title: string;
+  date: Date;
+  time: string;
+  provider: string;
+  providerId: string | null;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  cancelable: boolean;
+  alert: boolean;
+  service: { id: string; title: string; provider?: { id: string; legalName: string; }; };
+  location?: string;
+  notes?: string;
+  serviceId: string;
+}
 
 export default function CustomerBookings() {
-  const [appointments, setAppointments] = useState(mockAppointments.filter(apt => apt.client === 'João Silva'));
+  const { user } = useAuth();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isReviewModalVisible, setReviewModalVisible] = useState(false);
+  const [currentReviewDetails, setCurrentReviewDetails] = useState<{ serviceId: string; providerId: string; } | null>(null);
+
+  
+
+  
+
+  
+
+  const isCancelable = (date: Date) => {
+    const now = new Date();
+    const diffMinutes = (date.getTime() - now.getTime()) / (1000 * 60);
+    return diffMinutes > 120; // Cancelable if more than 2 hours before
+  };
+
+  const minutesUntil = (date: Date) => {
+    const now = new Date();
+    return (date.getTime() - now.getTime()) / (1000 * 60);
+  };
+
+  const fetchAppointments = useCallback(async () => {
+    if (!user?.token) return;
+    setLoading(true);
+    try {
+      const { data } = await api.get('/user/customer/appointments', user.token);
+      const mappedAppointments = data.map((appt: any) => {
+        const date = new Date(appt.scheduledAt * 1000);
+        return {
+          id: appt.id,
+          title: appt.service.title,
+          date,
+          time: `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
+          provider: appt.service.provider?.legalName || 'Prestador não identificado',
+          providerId: appt.service.provider?.id || null,
+          status: appt.status.toLowerCase(),
+          cancelable: isCancelable(date),
+          alert: minutesUntil(date) <= 90 && minutesUntil(date) > 60,
+          service: appt.service,
+          location: appt.location,
+          notes: appt.notes,
+          serviceId: appt.service.id,
+        };
+      });
+      setAppointments(mappedAppointments);
+    } catch (error) {
+      console.error('Failed to fetch appointments:', error);
+      Alert.alert('Erro', 'Falha ao carregar agendamentos.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.token]);
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -38,7 +113,7 @@ export default function CustomerBookings() {
     }
   };
 
-  const handleCancelAppointment = (appointmentId: string) => {
+  const handleCancelAppointment = async (appointmentId: string) => {
     Alert.alert(
       'Cancelar Agendamento',
       'Tem certeza que deseja cancelar este agendamento?',
@@ -50,26 +125,48 @@ export default function CustomerBookings() {
         {
           text: 'Sim',
           style: 'destructive',
-          onPress: () => {
-            setAppointments(prev => 
-              prev.map(apt => 
-                apt.id === appointmentId 
-                  ? { ...apt, status: 'cancelled' as const }
-                  : apt
-              )
-            );
+          onPress: async () => {
+            if (!user?.token) return;
+            try {
+              await api.post(`/user/customer/appointments/${appointmentId}/cancel`, {}, user.token);
+              Alert.alert('Sucesso', 'Agendamento cancelado com sucesso!');
+              fetchAppointments(); // Refresh appointments
+            } catch (error) {
+              console.error('Failed to cancel appointment:', error);
+              Alert.alert('Erro', 'Falha ao cancelar agendamento. Tente novamente.');
+            }
           },
         },
       ]
     );
   };
 
-  const handleRescheduleAppointment = (appointmentId: string) => {
+  const handleRescheduleAppointment = (appointmentId: string, serviceId: string, providerId: string) => {
     router.push({
       pathname: '/booking-calendar',
-      params: { appointmentId, reschedule: 'true' }
+      params: { appointmentId, reschedule: 'true', serviceId, providerId }
     });
   };
+
+  const handleLeaveReview = (serviceId: string, providerId: string) => {
+    setCurrentReviewDetails({ serviceId, providerId });
+    setReviewModalVisible(true);
+  };
+
+  const onReviewSubmitted = () => {
+    setReviewModalVisible(false);
+    setCurrentReviewDetails(null);
+    fetchAppointments(); // Refresh appointments after review
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingText}>Carregando agendamentos...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -97,7 +194,7 @@ export default function CustomerBookings() {
               />
               <View style={styles.appointmentContent}>
                 <View style={styles.appointmentHeader}>
-                  <Text style={styles.serviceName}>{appointment.service}</Text>
+                  <Text style={styles.serviceName}>{appointment.service.title}</Text>
                   <View
                     style={[
                       styles.statusBadge,
@@ -119,8 +216,12 @@ export default function CustomerBookings() {
                   <View style={styles.detailRow}>
                     <Calendar size={16} color="#6B7280" />
                     <Text style={styles.detailText}>
-                      {appointment.date} às {appointment.time}
+                      {appointment.date.toLocaleDateString('pt-BR')} às {appointment.time}
                     </Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Clock size={16} color="#6B7280" />
+                    <Text style={styles.detailText}>Prestador: {appointment.provider.legalName}</Text>
                   </View>
                   {appointment.location && (
                     <View style={styles.detailRow}>
@@ -136,7 +237,7 @@ export default function CustomerBookings() {
                   )}
                 </View>
 
-                {appointment.status === 'pending' && (
+                {appointment.status === 'pending' && appointment.cancelable && (
                   <View style={styles.appointmentActions}>
                     <TouchableOpacity 
                       style={styles.cancelButton}
@@ -146,20 +247,31 @@ export default function CustomerBookings() {
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={styles.rescheduleButton}
-                      onPress={() => handleRescheduleAppointment(appointment.id)}
+                      onPress={() => handleRescheduleAppointment(appointment.id, appointment.serviceId, appointment.providerId)}
                     >
                       <Text style={styles.rescheduleButtonText}>Reagendar</Text>
                     </TouchableOpacity>
                   </View>
                 )}
 
-                {appointment.status === 'confirmed' && (
+                {appointment.status === 'confirmed' && appointment.cancelable && (
                   <View style={styles.appointmentActions}>
                     <TouchableOpacity 
                       style={styles.rescheduleButton}
-                      onPress={() => handleRescheduleAppointment(appointment.id)}
+                      onPress={() => handleRescheduleAppointment(appointment.id, appointment.serviceId, appointment.providerId)}
                     >
                       <Text style={styles.rescheduleButtonText}>Reagendar</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {appointment.status === 'completed' && (
+                  <View style={styles.appointmentActions}>
+                    <TouchableOpacity 
+                      style={styles.reviewButton}
+                      onPress={() => handleLeaveReview(appointment.serviceId, appointment.providerId)}
+                    >
+                      <Text style={styles.reviewButtonText}>Avaliar</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -168,6 +280,16 @@ export default function CustomerBookings() {
           ))
         )}
       </ScrollView>
+
+      {currentReviewDetails && (
+        <ReviewModal
+          isVisible={isReviewModalVisible}
+          onClose={() => setReviewModalVisible(false)}
+          onReviewSubmitted={onReviewSubmitted}
+          serviceId={currentReviewDetails.serviceId}
+          providerId={currentReviewDetails.providerId}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -176,6 +298,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
   },
   header: {
     paddingHorizontal: 24,
@@ -217,13 +351,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
     overflow: 'hidden',
   },
   statusIndicator: {
@@ -254,6 +382,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
+    color: '#6B7280',
   },
   appointmentDetails: {
     gap: 8,
@@ -313,6 +442,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rescheduleButtonText: {
+    fontSize: 12,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
+  },
+  reviewButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    backgroundColor: '#3B82F6',
+    alignItems: 'center',
+  },
+  reviewButtonText: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',

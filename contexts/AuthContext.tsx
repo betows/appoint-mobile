@@ -29,8 +29,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/* const API_URL = 'http://192.168.125.12:5000/api/v1'; */
-const API_URL = 'http://localhost:5000/api/v1'
+import api from '../services/api';
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,24 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
     loadUser();
-  }, [user]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
+      const data = await api.post<User>('/auth/login', { email, password });
 
       const loggedInUser: User = {
         id: data.id,
@@ -88,32 +75,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (name: string, email: string, password: string, userType: UserType) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const data = await api.post<User>('/auth/register', {
+        name,
+        email,
+        password,
+        role: userType.toUpperCase(), // Backend expects 'CUSTOMER' or 'PROVIDER'
+        address: { // Placeholder address, adjust as per backend requirements
+          street: 'Some Street',
+          number: '123',
+          zipCode: '12345-678',
+          city: 'Some City',
+          state: 'Some State',
+          neighborhood: 'Some Neighborhood',
         },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          role: userType.toUpperCase(), // Backend expects 'CUSTOMER' or 'PROVIDER'
-          address: { // Placeholder address, adjust as per backend requirements
-            street: 'Some Street',
-            number: '123',
-            zipCode: '12345-678',
-            city: 'Some City',
-            state: 'Some State',
-            neighborhood: 'Some Neighborhood',
-          },
-        }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
-      }
 
       const registeredUser: User = {
         id: data.id, // Assuming backend returns user id
@@ -137,16 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user || !user.token) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/user`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to refresh user data');
-      }
+      const data = await api.get<User>('/user', user.token);
       const refreshedUser = { ...user, ...data };
       setUser(refreshedUser);
       await AsyncStorage.setItem('user', JSON.stringify(refreshedUser));
@@ -164,19 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user || !user.token) throw new Error('User not authenticated');
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/user`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`,
-        },
-        body: JSON.stringify(userData),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update user');
-      }
-      const updatedUser = { ...user, ...data };
+      const updatedUser = await api.patch<User>('/user', userData, user.token);
       setUser(updatedUser);
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (error) {
@@ -191,18 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user || !user.token) throw new Error('User not authenticated');
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/user/update-password`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`,
-        },
-        body: JSON.stringify({ oldPassword, newPassword }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update password');
-      }
+      await api.patch('/user/update-password', { oldPassword, newPassword }, user.token);
       // Password updated successfully, no need to update user state with password
     } catch (error) {
       console.error('Update password error:', error);

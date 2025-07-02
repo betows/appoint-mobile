@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Clock, Star } from 'lucide-react-native';
+import { ArrowLeft, Star } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 
-const API_URL = 'http://localhost:5000/api/v1';
+import api from '@/services/api';
 
 interface Service {
   id: string;
@@ -26,7 +26,7 @@ interface Provider {
 }
 
 export default function ServiceDetail() {
-  const { serviceId } = useLocalSearchParams<{ serviceId: string }>();
+  const { serviceId, providerId } = useLocalSearchParams<{ serviceId: string, providerId: string }>();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('Descrição');
   const [service, setService] = useState<Service | null>(null);
@@ -40,39 +40,15 @@ export default function ServiceDetail() {
       setLoading(true);
       try {
         // Fetch service details
-        const serviceResponse = await fetch(`${API_URL}/marketplace/services/${serviceId}`, {
-          headers: {
-            'Authorization': `Bearer ${user.token}`,
-          },
-        });
-        const serviceData = await serviceResponse.json();
-        if (!serviceResponse.ok) {
-          throw new Error(serviceData.message || 'Failed to fetch service');
-        }
+        const serviceData = await api.get<Service>(`/marketplace/services/${serviceId}`, user.token);
         setService(serviceData);
 
         // Fetch provider details
-        const providerResponse = await fetch(`${API_URL}/marketplace/providers/${serviceData.providerId}`, {
-          headers: {
-            'Authorization': `Bearer ${user.token}`,
-          },
-        });
-        const providerData = await providerResponse.json();
-        if (!providerResponse.ok) {
-          throw new Error(providerData.message || 'Failed to fetch provider');
-        }
+        const providerData = await api.get<Provider>(`/marketplace/providers/${providerId}`, user.token);
         setProvider(providerData);
 
         // Fetch related services
-        const relatedServicesResponse = await fetch(`${API_URL}/marketplace/providers/${serviceData.providerId}/services`, {
-          headers: {
-            'Authorization': `Bearer ${user.token}`,
-          },
-        });
-        const relatedServicesData = await relatedServicesResponse.json();
-        if (!relatedServicesResponse.ok) {
-          throw new Error(relatedServicesData.message || 'Failed to fetch related services');
-        }
+        const relatedServicesData = await api.get<{ services: Service[] }>(`/marketplace/providers/${providerId}/services`, user.token);
         setRelatedServices(relatedServicesData.services.filter((s: Service) => s.id !== serviceId));
 
       } catch (error) {
@@ -245,7 +221,7 @@ export default function ServiceDetail() {
           style={styles.bookButton}
           onPress={() => router.push({
             pathname: '/booking-calendar',
-            params: { serviceId: service.id, providerId: provider.id }
+            params: { serviceId: service.id, providerId: providerId }
           })}
         >
           <Text style={styles.bookButtonText}>Agendar Serviço</Text>

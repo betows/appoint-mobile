@@ -16,10 +16,10 @@ interface Service {
   image: string;
 }
 
-const API_URL = 'http://localhost:5000/api/v1';
+import api from '@/services/api';
 
 export default function ProviderServices() {
-  const { user, isLoading: authLoading, refreshUser } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [loadingServices, setLoadingServices] = useState(true);
 
@@ -30,16 +30,7 @@ export default function ProviderServices() {
     }
     setLoadingServices(true);
     try {
-      const response = await fetch(`${API_URL}/marketplace/providers/${user.id}/services`, {
-        headers: {
-          'Authorization': `Bearer ${user.token}`,
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch services');
-      }
-      // Backend returns an object with a 'services' array
+      const data = await api.get<{ services: Service[] }>(`/marketplace/providers/${user.id}/services`, user.token);
       setServices(data.services || []);
     } catch (error) {
       console.error('Failed to fetch services:', error);
@@ -264,13 +255,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
     overflow: 'hidden',
   },
   serviceImage: {

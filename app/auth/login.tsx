@@ -12,26 +12,26 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [formErrors, setFormErrors] = useState<{ email?: string; password?: string }>({});
 
   const userType = type || 'customer';
   const isCustomer = userType === 'customer';
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newFormErrors: { email?: string; password?: string } = {};
     
     if (!email.trim()) {
-      newErrors.email = 'Email é obrigatório';
+      newFormErrors.email = 'Email é obrigatório';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Por favor, insira um email válido';
+      newFormErrors.email = 'Por favor, insira um email válido';
     }
     
     if (!password.trim()) {
-      newErrors.password = 'Senha é obrigatória';
+      newFormErrors.password = 'Senha é obrigatória';
     }
     
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setFormErrors(newFormErrors);
+    return Object.keys(newFormErrors).length === 0;
   };
 
   const handleLogin = async () => {
@@ -39,7 +39,7 @@ export default function Login() {
     
     try {
       await login(email, password, userType);
-    } catch (error) {
+    } catch {
       Alert.alert('Falha no Login', 'Verifique suas credenciais e tente novamente.');
     }
   };
@@ -87,7 +87,7 @@ export default function Login() {
                   autoCorrect={false}
                 />
               </View>
-              {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+              {formErrors.email && <Text style={styles.errorText}>{formErrors.email}</Text>}
             </View>
 
             <View style={styles.inputContainer}>
@@ -113,7 +113,7 @@ export default function Login() {
                   )}
                 </TouchableOpacity>
               </View>
-              {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+              {formErrors.password && <Text style={styles.errorText}>{formErrors.password}</Text>}
             </View>
 
             <TouchableOpacity

@@ -1,11 +1,14 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CreditCard as Edit, Star, MapPin, Phone, Mail, Settings, LogOut, Bell, Shield, CircleHelp as HelpCircle, CreditCard, Users, ChevronRight, Moon, Globe } from 'lucide-react-native';
+import { CreditCard as Edit, Star, MapPin, Phone, Mail, LogOut, Bell, Shield, CircleHelp as HelpCircle, CreditCard, Users, ChevronRight, Moon, Globe, Clock } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import WorkHoursModal from '@/components/WorkHoursModal'; // New import
+import { useState } from 'react'; // New import
 
 export default function ProviderProfile() {
   const { user, logout } = useAuth();
+  const [isWorkHoursModalVisible, setWorkHoursModalVisible] = useState(false); // New state
 
   const handleLogout = () => {
     Alert.alert(
@@ -36,6 +39,13 @@ export default function ProviderProfile() {
       subtitle: 'Alterar informações pessoais',
       icon: Edit,
       onPress: handleEditProfile,
+    },
+    {
+      id: 'work-hours',
+      title: 'Horários de Trabalho',
+      subtitle: 'Gerenciar sua disponibilidade',
+      icon: Clock,
+      onPress: () => setWorkHoursModalVisible(true), // Open modal
     },
     {
       id: 'notifications',
@@ -247,6 +257,12 @@ export default function ProviderProfile() {
           <Text style={styles.versionText}>Appoint v1.0.0</Text>
         </View>
       </ScrollView>
+
+      <WorkHoursModal // Render the modal
+        isVisible={isWorkHoursModalVisible}
+        onClose={() => setWorkHoursModalVisible(false)}
+        onSave={() => { /* Optionally refresh provider data after saving */ }}
+      />
     </SafeAreaView>
   );
 }

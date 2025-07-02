@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CreditCard as Edit, Star, MapPin, Phone, Mail, Settings, LogOut } from 'lucide-react-native';
+import { CreditCard as Edit, LogOut, Settings, Mail, Phone, MapPin } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 

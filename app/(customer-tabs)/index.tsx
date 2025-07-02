@@ -51,7 +51,7 @@ export default function CustomerHome() {
   const fetchCategories = useCallback(async () => {
     if (!user?.token) return;
     try {
-      const data = await api.get('/marketplace/categories', user.token);
+      const data = await api.get<Category[]>('/marketplace/categories', user.token);
       setCategories(data.map((cat: any) => ({ ...cat, icon: cat.name.substring(0,1).toUpperCase() })));
     } catch (error) {
       console.error('Failed to fetch categories:', error);
@@ -373,11 +373,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
   },
   searchInput: {
     flex: 1,
@@ -436,10 +432,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginRight: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
     elevation: 2,
     borderWidth: 1,
     borderColor: '#F3F4F6',
@@ -515,10 +508,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     marginHorizontal: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
     elevation: 2,
     borderWidth: 1,
     borderColor: '#F3F4F6',
