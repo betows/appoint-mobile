@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
-import { XCircle, CheckCircle, Info } from 'lucide-react-native';
+import { Circle as XCircle, CircleCheck as CheckCircle, Info } from 'lucide-react-native';
 import { useNotification } from '@/contexts/NotificationContext';
 
 export default function NotificationsModal() {
