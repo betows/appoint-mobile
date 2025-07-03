@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../services/api';
 
 export type UserType = 'customer' | 'provider';
 
@@ -13,12 +14,19 @@ export interface User {
   rating?: number;
   services?: string[];
   categories?: string[];
-  token: string; // Add token to User interface
+  token: string;
+  address?: {
+    street: string;
+    number?: string;
+    cep?: string;
+    id?: string;
+  };
+  notificationPreferences?: ('APP' | 'WHATSAPP')[];
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, userType?: UserType) => Promise<void>;
   register: (name: string, email: string, password: string, userType: UserType) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
@@ -29,7 +37,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-import api from '../services/api';
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,17 +57,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadUser();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, userType?: UserType) => {
     setIsLoading(true);
     try {
-      const data = await api.post<User>('/auth/login', { email, password });
+      const data = await api.post<any>('/auth/login', { email, password });
 
       const loggedInUser: User = {
         id: data.id,
         name: data.name,
         email,
-        type: data.role.toLowerCase(), // Set user type from backend response
+        type: data.role?.toLowerCase() || userType || 'customer',
         token: data.token,
+        avatar: data.avatar,
+        phone: data.phone,
+        rating: data.rating,
+        services: data.services,
+        categories: data.categories,
+        address: data.address,
+        notificationPreferences: data.notificationPreferences,
       };
       setUser(loggedInUser);
       await AsyncStorage.setItem('user', JSON.stringify(loggedInUser));
@@ -75,12 +89,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (name: string, email: string, password: string, userType: UserType) => {
     setIsLoading(true);
     try {
-      const data = await api.post<User>('/auth/register', {
+      const data = await api.post<any>('/auth/register', {
         name,
         email,
         password,
-        role: userType.toUpperCase(), // Backend expects 'CUSTOMER' or 'PROVIDER'
-        address: { // Placeholder address, adjust as per backend requirements
+        role: userType.toUpperCase(),
+        address: {
           street: 'Some Street',
           number: '123',
           zipCode: '12345-678',
@@ -91,12 +105,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       const registeredUser: User = {
-        id: data.id, // Assuming backend returns user id
+        id: data.id,
         name,
         email,
         type: userType,
         token: data.token,
-        // You might need to fetch more user details after registration
+        avatar: data.avatar,
+        phone: data.phone,
+        rating: data.rating,
+        services: data.services,
+        categories: data.categories,
+        address: data.address,
+        notificationPreferences: data.notificationPreferences,
       };
       setUser(registeredUser);
       await AsyncStorage.setItem('user', JSON.stringify(registeredUser));
@@ -112,13 +132,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user || !user.token) return;
     setIsLoading(true);
     try {
-      const data = await api.get<User>('/user', user.token);
+      const data = await api.get<any>('/user', user.token);
       const refreshedUser = { ...user, ...data };
       setUser(refreshedUser);
       await AsyncStorage.setItem('user', JSON.stringify(refreshedUser));
     } catch (error) {
       console.error('Refresh user error:', error);
-      // Optionally logout if token is invalid
       logout();
       throw error;
     } finally {
@@ -130,9 +149,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user || !user.token) throw new Error('User not authenticated');
     setIsLoading(true);
     try {
-      const updatedUser = await api.patch<User>('/user', userData, user.token);
-      setUser(updatedUser);
-      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      const updatedUser = await api.patch<any>('/user', userData, user.token);
+      const newUser = { ...user, ...updatedUser };
+      setUser(newUser);
+      await AsyncStorage.setItem('user', JSON.stringify(newUser));
     } catch (error) {
       console.error('Update user error:', error);
       throw error;
@@ -146,7 +166,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       await api.patch('/user/update-password', { oldPassword, newPassword }, user.token);
-      // Password updated successfully, no need to update user state with password
     } catch (error) {
       console.error('Update password error:', error);
       throw error;
@@ -165,7 +184,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading, refreshUser, updateUser, updateUserPassword }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      register, 
+      logout, 
+      isLoading, 
+      refreshUser, 
+      updateUser, 
+      updateUserPassword 
+    }}>
       {children}
     </AuthContext.Provider>
   );

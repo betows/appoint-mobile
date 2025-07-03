@@ -4,11 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { format, addDays, parseISO, isToday, isSameDay } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import api from '@/services/api';
-
-
 
 interface TimeSlot {
   hour: string;
@@ -43,16 +39,18 @@ export default function BookingCalendar() {
     const days: DayData[] = [];
     const today = new Date();
     for (let i = 0; i < 7; i++) {
-      const date = addDays(today, i);
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const isToday = i === 0;
       days.push({
-        day: format(date, 'EEEE', { locale: ptBR }),
-        date: format(date, 'yyyy-MM-dd'),
+        day: date.toLocaleDateString('pt-BR', { weekday: 'short' }),
+        date: date.toISOString().split('T')[0],
         fullDate: date,
-        isToday: isToday(date),
+        isToday,
       });
     }
     setWeekDays(days);
-    setSelectedDay(format(today, 'yyyy-MM-dd')); // Select today by default
+    setSelectedDay(days[0].date); // Select today by default
   }, []);
 
   const fetchAvailableHours = useCallback(async () => {
@@ -64,8 +62,8 @@ export default function BookingCalendar() {
     console.log('Fetching available hours...');
     setLoading(true);
     try {
-      const startDate = format(new Date(), 'yyyy-MM-dd');
-      const endDate = format(addDays(new Date(), 6), 'yyyy-MM-dd'); // Fetch for 7 days
+      const startDate = new Date().toISOString().split('T')[0];
+      const endDate = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 6 days from now
 
       console.log(`API Call: /marketplace/services/${providerId}/available?startDate=${startDate}&endDate=${endDate}`);
       const data = await api.get<TimeSlot[]>(`/marketplace/services/${providerId}/available?startDate=${startDate}&endDate=${endDate}`, user.token);
@@ -195,7 +193,7 @@ export default function BookingCalendar() {
                       selectedDay === day.date && styles.selectedDayText,
                     ]}
                   >
-                    {day.day.substring(0, 3)}.
+                    {day.day}
                   </Text>
                   <Text
                     style={[
@@ -204,7 +202,7 @@ export default function BookingCalendar() {
                       selectedDay === day.date && styles.selectedDateText,
                     ]}
                   >
-                    {day.date}
+                    {day.fullDate.getDate()}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -359,31 +357,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   selectedDateText: {
-    color: '#FFFFFF',
-  },
-  periodSection: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-  periodContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  periodButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#F9FAFB',
-  },
-  activePeriodButton: {
-    backgroundColor: '#10B981',
-  },
-  periodText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  activePeriodText: {
     color: '#FFFFFF',
   },
   timesSection: {

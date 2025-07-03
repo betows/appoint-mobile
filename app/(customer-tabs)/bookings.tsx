@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
 import { router } from 'expo-router';
 import ReviewModal from '@/components/ReviewModal';
-import api from '@/services/api'; // New import
-import { useAuth } from '@/contexts/AuthContext'; // New import
+import api from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Appointment {
   id: string;
@@ -29,12 +29,6 @@ export default function CustomerBookings() {
   const [loading, setLoading] = useState(true);
   const [isReviewModalVisible, setReviewModalVisible] = useState(false);
   const [currentReviewDetails, setCurrentReviewDetails] = useState<{ serviceId: string; providerId: string; } | null>(null);
-
-  
-
-  
-
-  
 
   const isCancelable = (date: Date) => {
     const now = new Date();
@@ -221,7 +215,7 @@ export default function CustomerBookings() {
                   </View>
                   <View style={styles.detailRow}>
                     <Clock size={16} color="#6B7280" />
-                    <Text style={styles.detailText}>Prestador: {appointment.provider.legalName}</Text>
+                    <Text style={styles.detailText}>Prestador: {appointment.provider}</Text>
                   </View>
                   {appointment.location && (
                     <View style={styles.detailRow}>
@@ -351,7 +345,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     overflow: 'hidden',
   },
   statusIndicator: {

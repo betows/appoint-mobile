@@ -4,6 +4,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import NotificationsModal from '@/components/NotificationsModal';
 import { router, Slot } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
+import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 function RootLayoutNav() {
   const { user, isLoading } = useAuth();
@@ -41,6 +42,8 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  useFrameworkReady();
+
   return (
     <NotificationProvider>
       <AuthProvider>

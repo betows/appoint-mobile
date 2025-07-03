@@ -6,11 +6,11 @@ import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function EditProfile() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [address, setAddress] = useState('São Paulo, SP');
+  const [address, setAddress] = useState(user?.address?.street || 'São Paulo, SP');
   const [description, setDescription] = useState(
     user?.type === 'provider' 
       ? 'Serviços elétricos profissionais com mais de 15 anos de experiência.'
@@ -61,11 +61,11 @@ export default function EditProfile() {
           text: 'Salvar',
           onPress: async () => {
             try {
-              const userDataToUpdate: Partial<User> = {
+              const userDataToUpdate: Partial<typeof user> = {
                 name: name,
                 email: email,
                 phone: phone,
-                address: { street: address }, // Simplified for now
+                address: { street: address },
               };
 
               if (user?.type === 'provider') {
@@ -133,7 +133,7 @@ export default function EditProfile() {
         <View style={styles.photoSection}>
           <View style={styles.photoContainer}>
             <Image
-              source={{ uri: user?.avatar }}
+              source={{ uri: user?.avatar || 'https://via.placeholder.com/150' }}
               style={styles.profilePhoto}
             />
             <TouchableOpacity 

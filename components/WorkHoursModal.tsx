@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,13 +31,8 @@ export default function WorkHoursModal({ isVisible, onClose, onSave }: WorkHours
   const [loading, setLoading] = useState(true);
   const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
 
-  useEffect(() => {
-    if (isVisible && user?.token) {
-      fetchWorkingHours();
-    }
-  }, [isVisible, user?.token, fetchWorkingHours]);
-
   const fetchWorkingHours = useCallback(async () => {
+    if (!user?.token) return;
     setLoading(true);
     try {
       const response = await api.get(`/providers/working-hours`, user.token);
@@ -48,7 +43,13 @@ export default function WorkHoursModal({ isVisible, onClose, onSave }: WorkHours
     } finally {
       setLoading(false);
     }
-  }, [user?.token, setLoading, setWorkingHours]);
+  }, [user?.token]);
+
+  useEffect(() => {
+    if (isVisible && user?.token) {
+      fetchWorkingHours();
+    }
+  }, [isVisible, user?.token, fetchWorkingHours]);
 
   const handleTimeChange = (dayId: number, type: 'start' | 'end', time: string) => {
     setWorkingHours(prev => {
@@ -158,8 +159,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 25,
     alignItems: 'center',
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
     elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
     width: '90%',
   },
   modalHeader: {
