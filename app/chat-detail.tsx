@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Send, Phone, Video } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import api from '@/services/api';
+
+const API_URL = 'http://localhost:5000/api/v1';
 
 interface Message {
   id: string;
@@ -32,7 +33,15 @@ export default function ChatDetail() {
     if (!user?.token || !professionalId) return;
     setLoading(true);
     try {
-      const data = await api.get<ChatMessage[]>(`/chat`, user.token);
+      const response = await fetch(`${API_URL}/chat`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch chat messages');
+      }
       // Filter messages relevant to this professional and map to local Message interface
       const filteredAndMappedMessages: Message[] = data
         .filter((msg: ChatMessage) => msg.senderId === professionalId || msg.receiverId === professionalId)
@@ -55,7 +64,7 @@ export default function ChatDetail() {
     fetchChatMessages();
   }, [fetchChatMessages]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     if (newMessage.trim()) {
       const message: Message = {
         id: Date.now().toString(),
@@ -70,18 +79,20 @@ export default function ChatDetail() {
       setMessages(prev => [...prev, message]);
       setNewMessage('');
 
-      try {
-        if (user) {
-          await api.post('/chat', { receiverId: professionalId, message: newMessage.trim() }, user.token);
-        } else {
-          throw new Error('Usuário não autenticado.');
-        }
-      } catch (error) {
-        console.error('Failed to send message:', error);
-        Alert.alert('Erro', 'Falha ao enviar mensagem. Tente novamente.');
-        // Optionally revert message from UI if sending fails
-        setMessages(prev => prev.filter(msg => msg.id !== message.id));
-      }
+      // TODO: Backend does not currently support sending new messages via API.
+      // This is a simulated response.
+      setTimeout(() => {
+        const response: Message = {
+          id: (Date.now() + 1).toString(),
+          text: 'Obrigado pela mensagem! Vou analisar sua solicitação e te respondo em breve.',
+          isFromUser: false,
+          timestamp: new Date().toLocaleTimeString('pt-BR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+        };
+        setMessages(prev => [...prev, response]);
+      }, 2000);
     }
   };
 
@@ -269,7 +280,10 @@ const styles = StyleSheet.create({
   otherBubble: {
     backgroundColor: '#FFFFFF',
     borderBottomLeftRadius: 4,
-    boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
     elevation: 1,
   },
   messageText: {

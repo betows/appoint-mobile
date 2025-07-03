@@ -49,8 +49,11 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.0.10",
+<<<<<<< HEAD
     "eslint": "^9.0.0",
     "eslint-config-expo": "~9.2.0",
+=======
+>>>>>>> parent of b97bf83 (fetching services and providers)
     "typescript": "~5.8.3"
   }
 }

@@ -51,7 +51,7 @@ export default function CustomerHome() {
   const fetchCategories = useCallback(async () => {
     if (!user?.token) return;
     try {
-      const data = await api.get<Category[]>('/marketplace/categories', user.token);
+      const data = await api.get('/marketplace/categories', user.token);
       setCategories(data.map((cat: any) => ({ ...cat, icon: cat.name.substring(0,1).toUpperCase() })));
     } catch (error) {
       console.error('Failed to fetch categories:', error);
@@ -367,11 +367,18 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 20,
     paddingVertical: 12,
+<<<<<<< HEAD
     elevation: 3,
+=======
+>>>>>>> parent of b97bf83 (fetching services and providers)
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
+<<<<<<< HEAD
+=======
+    elevation: 3,
+>>>>>>> parent of b97bf83 (fetching services and providers)
   },
   searchInput: {
     flex: 1,
@@ -430,6 +437,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginRight: 16,
+<<<<<<< HEAD
+=======
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+>>>>>>> parent of b97bf83 (fetching services and providers)
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -509,6 +523,13 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     marginHorizontal: 24,
+<<<<<<< HEAD
+=======
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+>>>>>>> parent of b97bf83 (fetching services and providers)
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

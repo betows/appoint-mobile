@@ -12,26 +12,26 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [formErrors, setFormErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const userType = type || 'customer';
   const isCustomer = userType === 'customer';
 
   const validateForm = () => {
-    const newFormErrors: { email?: string; password?: string } = {};
+    const newErrors: { email?: string; password?: string } = {};
     
     if (!email.trim()) {
-      newFormErrors.email = 'Email é obrigatório';
+      newErrors.email = 'Email é obrigatório';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newFormErrors.email = 'Por favor, insira um email válido';
+      newErrors.email = 'Por favor, insira um email válido';
     }
     
     if (!password.trim()) {
-      newFormErrors.password = 'Senha é obrigatória';
+      newErrors.password = 'Senha é obrigatória';
     }
     
-    setFormErrors(newFormErrors);
-    return Object.keys(newFormErrors).length === 0;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleLogin = async () => {
@@ -39,7 +39,10 @@ export default function Login() {
     
     try {
       await login(email, password, userType);
+<<<<<<< HEAD
       // Navigation will be handled by the root layout
+=======
+>>>>>>> parent of b97bf83 (fetching services and providers)
     } catch (error) {
       Alert.alert('Falha no Login', 'Verifique suas credenciais e tente novamente.');
     }
@@ -84,7 +87,7 @@ export default function Login() {
                   autoCorrect={false}
                 />
               </View>
-              {formErrors.email && <Text style={styles.errorText}>{formErrors.email}</Text>}
+              {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
             </View>
 
             <View style={styles.inputContainer}>
@@ -110,7 +113,7 @@ export default function Login() {
                   )}
                 </TouchableOpacity>
               </View>
-              {formErrors.password && <Text style={styles.errorText}>{formErrors.password}</Text>}
+              {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
             </View>
 
             <TouchableOpacity

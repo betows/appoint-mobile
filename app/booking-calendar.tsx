@@ -4,7 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+<<<<<<< HEAD
 import api from '@/services/api';
+=======
+import { format, addDays, parseISO, isToday, isSameDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+const API_URL = 'http://localhost:5000/api/v1';
+>>>>>>> parent of b97bf83 (fetching services and providers)
 
 interface TimeSlot {
   hour: string;
@@ -13,13 +20,13 @@ interface TimeSlot {
 
 interface DayData {
   day: string;
-  date: string; // yyyy-MM-dd format
+  date: string;
   fullDate: Date;
   isToday: boolean;
 }
 
 export default function BookingCalendar() {
-  const { serviceId, providerId, reschedule } = useLocalSearchParams<{ 
+  const { serviceId, providerId, appointmentId, reschedule } = useLocalSearchParams<{ 
     serviceId: string; 
     providerId: string; 
     appointmentId?: string; 
@@ -43,37 +50,46 @@ export default function BookingCalendar() {
       date.setDate(today.getDate() + i);
       const isToday = i === 0;
       days.push({
+<<<<<<< HEAD
         day: date.toLocaleDateString('pt-BR', { weekday: 'short' }),
         date: date.toISOString().split('T')[0],
+=======
+        day: format(date, 'EEEE', { locale: ptBR }),
+        date: format(date, 'dd'),
+>>>>>>> parent of b97bf83 (fetching services and providers)
         fullDate: date,
         isToday,
       });
     }
     setWeekDays(days);
+<<<<<<< HEAD
     setSelectedDay(days[0].date); // Select today by default
+=======
+    setSelectedDay(format(today, 'dd')); // Select today by default
+>>>>>>> parent of b97bf83 (fetching services and providers)
   }, []);
 
   const fetchAvailableHours = useCallback(async () => {
-    if (!providerId || !user?.token) {
-      console.log('Skipping fetchAvailableHours: providerId or user.token missing');
-      setLoading(false);
-      return;
-    }
-    console.log('Fetching available hours...');
+    if (!providerId || !user?.token) return;
     setLoading(true);
     try {
       const startDate = new Date().toISOString().split('T')[0];
       const endDate = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 6 days from now
 
-      console.log(`API Call: /marketplace/services/${providerId}/available?startDate=${startDate}&endDate=${endDate}`);
-      const data = await api.get<TimeSlot[]>(`/marketplace/services/${providerId}/available?startDate=${startDate}&endDate=${endDate}`, user.token);
-      console.log('Available hours fetched successfully:', data);
+      const response = await fetch(`${API_URL}/marketplace/services/${providerId}/available?startDate=${startDate}&endDate=${endDate}`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch available hours');
+      }
       setAvailableTimeSlots(data);
     } catch (error) {
       console.error('Failed to fetch available hours:', error);
       Alert.alert('Erro', 'Falha ao carregar horários disponíveis.');
     } finally {
-      console.log('Finished fetching available hours.');
       setLoading(false);
     }
   }, [providerId, user?.token]);
@@ -110,7 +126,20 @@ export default function BookingCalendar() {
         // Add other necessary fields like providerId if needed by the backend
       };
 
-      await api.post('/payments', bookingPayload, user.token);
+      const response = await fetch(`${API_URL}/payments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`,
+        },
+        body: JSON.stringify(bookingPayload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Booking failed');
+      }
 
       const message = isRescheduling 
         ? 'Agendamento reagendado com sucesso!'
@@ -135,7 +164,9 @@ export default function BookingCalendar() {
   };
 
   const filteredTimeSlots = availableTimeSlots.filter(slot => {
-    return slot.date === selectedDay;
+    const slotDate = parseISO(slot.date);
+    const selectedDate = weekDays.find(day => day.date === selectedDay)?.fullDate;
+    return selectedDate && isSameDay(slotDate, selectedDate);
   });
 
   if (loading) {
@@ -341,6 +372,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-Medium',
     color: '#6B7280',
+    marginBottom: 4,
   },
   todayText: {
     color: '#FFFFFF',

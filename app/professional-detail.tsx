@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Star, Clock, MessageCircle } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import api from '@/services/api';
+
+const API_URL = 'http://localhost:5000/api/v1';
 
 interface Service {
   id: string;
@@ -47,7 +48,15 @@ export default function ProfessionalDetail() {
       if (!professionalId || !user?.token) return;
       setLoading(true);
       try {
-        const data = await api.get<Professional>(`/marketplace/providers/${professionalId}`, user.token);
+        const response = await fetch(`${API_URL}/marketplace/providers/${professionalId}`, {
+          headers: {
+            'Authorization': `Bearer ${user.token}`,
+          },
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch professional');
+        }
         setProfessional(data);
       } catch (error) {
         console.error('Failed to fetch professional:', error);
@@ -175,7 +184,7 @@ export default function ProfessionalDetail() {
                   style={styles.serviceCard}
                   onPress={() => router.push({
                     pathname: '/service-detail',
-                    params: { serviceId: service.id, providerId: professional.id }
+                    params: { serviceId: service.id }
                   })}
                 >
                   <Image
@@ -374,6 +383,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+<<<<<<< HEAD
+=======
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+>>>>>>> parent of b97bf83 (fetching services and providers)
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

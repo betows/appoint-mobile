@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Star, MessageCircle } from 'lucide-react-native';
+import { Search, Star, MessageCircle, Bell } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
-import api from '@/services/api';
+
+const API_URL = 'http://localhost:5000/api/v1';
 
 interface Professional {
   id: string;
@@ -43,7 +44,15 @@ export default function Professionals() {
     if (!user?.token) return;
     setLoading(true);
     try {
-      const data = await api.get<{ result: Professional[] }>(`/marketplace/providers?search=${searchQuery}`, user.token);
+      const response = await fetch(`${API_URL}/marketplace/providers?search=${searchQuery}`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch professionals');
+      }
       setProfessionals(data.result);
     } catch (error) {
       console.error('Failed to fetch professionals:', error);
@@ -57,7 +66,15 @@ export default function Professionals() {
     if (!user?.token) return;
     setLoading(true);
     try {
-      const data = await api.get<Service[]>(`/marketplace/services?search=${searchQuery}`, user.token);
+      const response = await fetch(`${API_URL}/marketplace/services?search=${searchQuery}`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch services');
+      }
       setServices(data.map((s: any) => ({ ...s, category: s.category })));
     } catch (error) {
       console.error('Failed to fetch services:', error);
@@ -191,16 +208,10 @@ export default function Professionals() {
                   <TouchableOpacity
                     key={professional.id}
                     style={styles.professionalCard}
-                    onPress={() => {
-                      if (professional.id) {
-                        router.push({
-                          pathname: '/professional-detail',
-                          params: { professionalId: professional.id }
-                        });
-                      } else {
-                        Alert.alert('Erro', 'ID do profissional não encontrado.');
-                      }
-                    }}
+                    onPress={() => router.push({
+                      pathname: '/professional-detail',
+                      params: { professionalId: professional.id }
+                    })}
                   >
                     <Image
                       source={{ uri: professional.image || 'https://via.placeholder.com/56' }}
@@ -215,7 +226,7 @@ export default function Professionals() {
                         </Text>
                       </View>
                       <Text style={styles.professionalCategory}>{professional.categories.join(', ')}</Text>
-                      <Text style={styles.professionalAddress}>{professional.address?.street || ''}</Text>
+                      <Text style={styles.professionalAddress}>{professional.address?.street || 'N/A'}</Text>
                     </View>
                     <View style={styles.professionalActions}>
                       <TouchableOpacity 
@@ -249,16 +260,10 @@ export default function Professionals() {
                   <TouchableOpacity
                     key={service.id}
                     style={styles.serviceCard}
-                    onPress={() => {
-                      if (service.id) {
-                        router.push({
-                          pathname: '/service-detail',
-                          params: { serviceId: service.id }
-                        });
-                      } else {
-                        Alert.alert('Erro', 'ID do serviço não encontrado.');
-                      }
-                    }}
+                    onPress={() => router.push({
+                      pathname: '/service-detail',
+                      params: { serviceId: service.id }
+                    })}
                   >
                     <Image
                       source={{ uri: service.image || 'https://via.placeholder.com/80' }}
@@ -336,7 +341,10 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 3,
     gap: 12,
   },
@@ -407,7 +415,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
     borderColor: '#F3F4F6',
@@ -463,7 +474,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
     borderColor: '#F3F4F6',

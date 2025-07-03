@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
+import { mockAppointments } from '@/data/mockData';
 import { router } from 'expo-router';
+<<<<<<< HEAD
 import ReviewModal from '@/components/ReviewModal';
 import api from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -76,6 +78,11 @@ export default function CustomerBookings() {
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
+=======
+
+export default function CustomerBookings() {
+  const [appointments, setAppointments] = useState(mockAppointments.filter(apt => apt.client === 'João Silva'));
+>>>>>>> parent of b97bf83 (fetching services and providers)
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -107,7 +114,7 @@ export default function CustomerBookings() {
     }
   };
 
-  const handleCancelAppointment = async (appointmentId: string) => {
+  const handleCancelAppointment = (appointmentId: string) => {
     Alert.alert(
       'Cancelar Agendamento',
       'Tem certeza que deseja cancelar este agendamento?',
@@ -119,48 +126,26 @@ export default function CustomerBookings() {
         {
           text: 'Sim',
           style: 'destructive',
-          onPress: async () => {
-            if (!user?.token) return;
-            try {
-              await api.post(`/user/customer/appointments/${appointmentId}/cancel`, {}, user.token);
-              Alert.alert('Sucesso', 'Agendamento cancelado com sucesso!');
-              fetchAppointments(); // Refresh appointments
-            } catch (error) {
-              console.error('Failed to cancel appointment:', error);
-              Alert.alert('Erro', 'Falha ao cancelar agendamento. Tente novamente.');
-            }
+          onPress: () => {
+            setAppointments(prev => 
+              prev.map(apt => 
+                apt.id === appointmentId 
+                  ? { ...apt, status: 'cancelled' as const }
+                  : apt
+              )
+            );
           },
         },
       ]
     );
   };
 
-  const handleRescheduleAppointment = (appointmentId: string, serviceId: string, providerId: string) => {
+  const handleRescheduleAppointment = (appointmentId: string) => {
     router.push({
       pathname: '/booking-calendar',
-      params: { appointmentId, reschedule: 'true', serviceId, providerId }
+      params: { appointmentId, reschedule: 'true' }
     });
   };
-
-  const handleLeaveReview = (serviceId: string, providerId: string) => {
-    setCurrentReviewDetails({ serviceId, providerId });
-    setReviewModalVisible(true);
-  };
-
-  const onReviewSubmitted = () => {
-    setReviewModalVisible(false);
-    setCurrentReviewDetails(null);
-    fetchAppointments(); // Refresh appointments after review
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#10B981" />
-        <Text style={styles.loadingText}>Carregando agendamentos...</Text>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -188,7 +173,7 @@ export default function CustomerBookings() {
               />
               <View style={styles.appointmentContent}>
                 <View style={styles.appointmentHeader}>
-                  <Text style={styles.serviceName}>{appointment.service.title}</Text>
+                  <Text style={styles.serviceName}>{appointment.service}</Text>
                   <View
                     style={[
                       styles.statusBadge,
@@ -210,13 +195,16 @@ export default function CustomerBookings() {
                   <View style={styles.detailRow}>
                     <Calendar size={16} color="#6B7280" />
                     <Text style={styles.detailText}>
-                      {appointment.date.toLocaleDateString('pt-BR')} às {appointment.time}
+                      {appointment.date} às {appointment.time}
                     </Text>
                   </View>
+<<<<<<< HEAD
                   <View style={styles.detailRow}>
                     <Clock size={16} color="#6B7280" />
                     <Text style={styles.detailText}>Prestador: {appointment.provider}</Text>
                   </View>
+=======
+>>>>>>> parent of b97bf83 (fetching services and providers)
                   {appointment.location && (
                     <View style={styles.detailRow}>
                       <MapPin size={16} color="#6B7280" />
@@ -231,7 +219,7 @@ export default function CustomerBookings() {
                   )}
                 </View>
 
-                {appointment.status === 'pending' && appointment.cancelable && (
+                {appointment.status === 'pending' && (
                   <View style={styles.appointmentActions}>
                     <TouchableOpacity 
                       style={styles.cancelButton}
@@ -241,31 +229,20 @@ export default function CustomerBookings() {
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={styles.rescheduleButton}
-                      onPress={() => handleRescheduleAppointment(appointment.id, appointment.serviceId, appointment.providerId)}
+                      onPress={() => handleRescheduleAppointment(appointment.id)}
                     >
                       <Text style={styles.rescheduleButtonText}>Reagendar</Text>
                     </TouchableOpacity>
                   </View>
                 )}
 
-                {appointment.status === 'confirmed' && appointment.cancelable && (
+                {appointment.status === 'confirmed' && (
                   <View style={styles.appointmentActions}>
                     <TouchableOpacity 
                       style={styles.rescheduleButton}
-                      onPress={() => handleRescheduleAppointment(appointment.id, appointment.serviceId, appointment.providerId)}
+                      onPress={() => handleRescheduleAppointment(appointment.id)}
                     >
                       <Text style={styles.rescheduleButtonText}>Reagendar</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {appointment.status === 'completed' && (
-                  <View style={styles.appointmentActions}>
-                    <TouchableOpacity 
-                      style={styles.reviewButton}
-                      onPress={() => handleLeaveReview(appointment.serviceId, appointment.providerId)}
-                    >
-                      <Text style={styles.reviewButtonText}>Avaliar</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -274,16 +251,6 @@ export default function CustomerBookings() {
           ))
         )}
       </ScrollView>
-
-      {currentReviewDetails && (
-        <ReviewModal
-          isVisible={isReviewModalVisible}
-          onClose={() => setReviewModalVisible(false)}
-          onReviewSubmitted={onReviewSubmitted}
-          serviceId={currentReviewDetails.serviceId}
-          providerId={currentReviewDetails.providerId}
-        />
-      )}
     </SafeAreaView>
   );
 }
@@ -292,18 +259,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
   },
   header: {
     paddingHorizontal: 24,
@@ -345,11 +300,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 12,
+<<<<<<< HEAD
     elevation: 2,
+=======
+>>>>>>> parent of b97bf83 (fetching services and providers)
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
+<<<<<<< HEAD
+=======
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+>>>>>>> parent of b97bf83 (fetching services and providers)
     overflow: 'hidden',
   },
   statusIndicator: {
@@ -380,7 +344,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
-    color: '#6B7280',
   },
   appointmentDetails: {
     gap: 8,
@@ -440,19 +403,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rescheduleButtonText: {
-    fontSize: 12,
-    fontFamily: 'Inter-SemiBold',
-    color: '#FFFFFF',
-  },
-  reviewButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    backgroundColor: '#3B82F6',
-    alignItems: 'center',
-  },
-  reviewButtonText: {
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
