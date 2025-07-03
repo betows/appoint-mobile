@@ -46,7 +46,7 @@ export default function CustomerHome() {
   const [topServices, setTopServices] = useState<Service[]>([]);
   const [lowPriceServices, setLowPriceServices] = useState<Service[]>([]);
   const [topProfessionals, setTopProfessionals] = useState<Professional[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     if (!user?.token) return;
@@ -55,7 +55,6 @@ export default function CustomerHome() {
       setCategories(data.map((cat: any) => ({ ...cat, icon: cat.name.substring(0,1).toUpperCase() })));
     } catch (error) {
       console.error('Failed to fetch categories:', error);
-      Alert.alert('Erro', 'Falha ao carregar categorias.');
     }
   }, [user?.token]);
 
@@ -70,7 +69,7 @@ export default function CustomerHome() {
         description: s.description,
         price: s.price,
         averageTime: s.averageTime,
-        image: s.image || 'https://via.placeholder.com/100',
+        image: s.image || 'https://images.pexels.com/photos/257736/pexels-photo-257736.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
         category: s.category,
         provider: s.provider,
         rating: s.rating || 0,
@@ -80,7 +79,6 @@ export default function CustomerHome() {
       setLowPriceServices([...mappedServices].sort((a, b) => a.price - b.price));
     } catch (error) {
       console.error('Failed to fetch services:', error);
-      Alert.alert('Erro', 'Falha ao carregar serviços.');
     }
   }, [user?.token]);
 
@@ -92,22 +90,19 @@ export default function CustomerHome() {
       setTopProfessionals(data.result.sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0)).slice(0, 4));
     } catch (error) {
       console.error('Failed to fetch professionals:', error);
-      Alert.alert('Erro', 'Falha ao carregar profissionais.');
     }
   }, [user?.token]);
 
   useEffect(() => {
-    const loadData = async () => {
+    if (user?.token) {
       setLoading(true);
-      await Promise.all([
+      Promise.all([
         fetchCategories(),
         fetchServices(selectedCategory || undefined),
         fetchProfessionals(selectedCategory || undefined),
-      ]);
-      setLoading(false);
-    };
-    loadData();
-  }, [fetchCategories, fetchServices, fetchProfessionals, selectedCategory]);
+      ]).finally(() => setLoading(false));
+    }
+  }, [user?.token, selectedCategory, fetchCategories, fetchServices, fetchProfessionals]);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -138,11 +133,11 @@ export default function CustomerHome() {
     </TouchableOpacity>
   );
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#10B981" />
-        <Text style={styles.loadingText}>Carregando dados...</Text>
+        <Text style={styles.loadingText}>Carregando...</Text>
       </SafeAreaView>
     );
   }
@@ -161,7 +156,6 @@ export default function CustomerHome() {
               <TouchableOpacity 
                 style={styles.notificationButton}
                 onPress={() => {
-                  // Navigate to notifications
                   console.log('Navigate to notifications');
                 }}
               >
@@ -273,7 +267,7 @@ export default function CustomerHome() {
                 })}
               >
                 <Image
-                  source={{ uri: professional.image || 'https://via.placeholder.com/56' }}
+                  source={{ uri: professional.image || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=56&h=56&dpr=2' }}
                   style={styles.professionalAvatar}
                 />
                 <View style={styles.professionalInfo}>
@@ -373,7 +367,11 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   searchInput: {
     flex: 1,
@@ -432,8 +430,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginRight: 16,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     borderWidth: 1,
     borderColor: '#F3F4F6',
     overflow: 'hidden',
@@ -508,8 +509,11 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     marginHorizontal: 24,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     borderWidth: 1,
     borderColor: '#F3F4F6',
   },

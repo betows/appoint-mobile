@@ -7,7 +7,7 @@ import { useAuth, UserType } from '@/contexts/AuthContext';
 import { ArrowLeft, Eye, EyeOff, Mail, Lock } from 'lucide-react-native';
 
 export default function Login() {
-  const { type } = useLocalSearchParams<{ type: UserType }>();
+  const { type } = useLocalSearchParams<{ type?: UserType }>();
   const { login, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,12 +39,11 @@ export default function Login() {
     
     try {
       await login(email, password, userType);
-    } catch {
+      // Navigation will be handled by the root layout
+    } catch (error) {
       Alert.alert('Falha no Login', 'Verifique suas credenciais e tente novamente.');
     }
   };
-
-  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -70,8 +69,6 @@ export default function Login() {
             <Text style={styles.subtitle}>
               Entre na sua conta para continuar
             </Text>
-
-            
 
             <View style={styles.inputContainer}>
               <View style={styles.inputWrapper}>
@@ -144,8 +141,6 @@ export default function Login() {
                 </Text>
               </TouchableOpacity>
             </View>
-
-            
           </View>
         </View>
       </LinearGradient>
@@ -197,21 +192,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     marginBottom: 24,
-  },
-  testButton: {
-    backgroundColor: '#F3F4F6',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 24,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-  },
-  testButtonText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#374151',
   },
   inputContainer: {
     marginBottom: 20,
@@ -276,18 +256,5 @@ const styles = StyleSheet.create({
   registerLink: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-  },
-  debugInfo: {
-    backgroundColor: '#F9FAFB',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  debugText: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    marginBottom: 2,
   },
 });

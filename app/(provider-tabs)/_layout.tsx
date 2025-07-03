@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { ChartBar as BarChart3, Wrench, Calendar, User } from 'lucide-react-native';
+import { BarChart3, Wrench, Calendar, User } from 'lucide-react-native';
 
 export default function ProviderTabLayout() {
   return (
