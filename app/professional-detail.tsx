@@ -11,7 +11,7 @@ interface Service {
   title: string;
   description: string;
   price: number;
-  averageTime: string; // Assuming duration is a string like "1h 30min"
+  averageTime: string;
   image: string;
   category: string;
 }
@@ -91,7 +91,7 @@ export default function ProfessionalDetail() {
         {/* Header with background image */}
         <View style={styles.headerContainer}>
           <Image
-            source={{ uri: professional.image || 'https://via.placeholder.com/400x200' }}
+            source={{ uri: professional.image || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400&h=200&dpr=2' }}
             style={styles.backgroundImage}
           />
           <View style={styles.headerOverlay}>
@@ -108,7 +108,7 @@ export default function ProfessionalDetail() {
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
             <Image
-              source={{ uri: professional.image || 'https://via.placeholder.com/80' }}
+              source={{ uri: professional.image || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=2' }}
               style={styles.avatar}
             />
             <TouchableOpacity style={styles.chatButton} onPress={handleChatPress}>
@@ -179,7 +179,7 @@ export default function ProfessionalDetail() {
                   })}
                 >
                   <Image
-                    source={{ uri: service.image || 'https://via.placeholder.com/60' }}
+                    source={{ uri: service.image || 'https://images.pexels.com/photos/257736/pexels-photo-257736.jpeg?auto=compress&cs=tinysrgb&w=60&h=60&dpr=2' }}
                     style={styles.serviceImage}
                   />
                   <View style={styles.serviceInfo}>
@@ -374,8 +374,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.05)',
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     borderWidth: 1,
     borderColor: '#F3F4F6',
   },

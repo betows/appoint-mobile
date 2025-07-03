@@ -2,8 +2,8 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const API_URL = Platform.OS === 'web'
-  ? process.env.EXPO_PUBLIC_API_URL_WEB
-  : process.env.EXPO_PUBLIC_API_URL_MOBILE;
+  ? process.env.EXPO_PUBLIC_API_URL_WEB || 'http://localhost:3000/api'
+  : process.env.EXPO_PUBLIC_API_URL_MOBILE || 'http://localhost:3000/api';
 
 interface RequestOptions extends RequestInit {
   token?: string;

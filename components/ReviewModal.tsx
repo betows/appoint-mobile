@@ -115,8 +115,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 25,
     alignItems: 'center',
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
     elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
     width: '90%',
   },
   modalHeader: {

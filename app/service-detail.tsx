@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Star } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-
 import api from '@/services/api';
 
 interface Service {
@@ -12,7 +11,7 @@ interface Service {
   title: string;
   description: string;
   price: number;
-  averageTime: string; // Assuming duration is a string like "1h 30min"
+  averageTime: string;
   image: string;
   category: { name: string };
 }
@@ -59,7 +58,7 @@ export default function ServiceDetail() {
       }
     };
     fetchData();
-  }, [serviceId, user?.token]);
+  }, [serviceId, user?.token, providerId]);
 
   if (loading) {
     return (
@@ -84,7 +83,7 @@ export default function ServiceDetail() {
         {/* Header with service image */}
         <View style={styles.headerContainer}>
           <Image
-            source={{ uri: service.image || 'https://via.placeholder.com/400x250' }}
+            source={{ uri: service.image || 'https://images.pexels.com/photos/257736/pexels-photo-257736.jpeg?auto=compress&cs=tinysrgb&w=400&h=250&dpr=2' }}
             style={styles.serviceImage}
           />
           <View style={styles.headerOverlay}>
@@ -197,11 +196,11 @@ export default function ServiceDetail() {
                 style={styles.relatedServiceCard}
                 onPress={() => router.push({
                   pathname: '/service-detail',
-                  params: { serviceId: relatedService.id }
+                  params: { serviceId: relatedService.id, providerId: providerId }
                 })}
               >
                 <Image
-                  source={{ uri: relatedService.image || 'https://via.placeholder.com/60' }}
+                  source={{ uri: relatedService.image || 'https://images.pexels.com/photos/257736/pexels-photo-257736.jpeg?auto=compress&cs=tinysrgb&w=60&h=60&dpr=2' }}
                   style={styles.relatedServiceImage}
                 />
                 <View style={styles.relatedServiceInfo}>
